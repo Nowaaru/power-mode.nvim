@@ -49,13 +49,6 @@ function module:setup()
         end
     });
 
-    vim.api.nvim_create_autocmd("TextChanged", {
-        group = powerModeGroup,
-        callback = function(args)
-            self:on_buffer_text_changed(args);
-        end
-    });
-
     --[[
     --TODO: make proper scoring system
     --zzz :snore:
@@ -81,7 +74,7 @@ function module:setup()
                 scoreItem.state_decrease = scoreItem.state_decrease + 1
             end;
 
-            print(("score for bufid %s: %s"):format(bufferId, scoreItem.score));
+            -- print(("score for bufid %s: %s"):format(bufferId, scoreItem.score));
             scoreItem.length_prev = scoreItem.length;
         end
     end)
@@ -92,7 +85,7 @@ function module:on_buffer_text_changed(args)
     local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
     local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
 
-    print("buffer length:", bufferLength);
+    -- print("buffer length:", bufferLength);
     local bufferId = tostring(args.buf);
     local storeItem = self.test_buffer_store[bufferId];
     if (not storeItem) then
