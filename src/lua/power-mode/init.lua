@@ -65,11 +65,12 @@ function module:setup()
         for bufferId, scoreItem in pairs(self.test_buffer_store) do
             scoreItem.time = scoreItem.time + timerIntervalMs;
             scoreItem.score = scoreItem.score +
-                math.min(scoreCap, scoreIncrease * math.abs(scoreItem.length_prev - scoreItem.length) / (timerIntervalMs * 0.5));
+                math.min(scoreCap,
+                    scoreIncrease * math.abs(scoreItem.length_prev - scoreItem.length) / (timerIntervalMs * 0.5));
 
             if (scoreItem.state_decrease >= scoreDecreaseCount) then
                 scoreItem.state_decrease = 0;
-                scoreItem.score = math.max(scoreItem.score - ((3 * scoreIncrease) / timerIntervalMs));
+                scoreItem.score = math.max(scoreItem.score - ((3 * scoreIncrease) / timerIntervalMs), 0);
             else
                 scoreItem.state_decrease = scoreItem.state_decrease + 1
             end;
