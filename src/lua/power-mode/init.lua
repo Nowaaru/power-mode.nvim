@@ -79,6 +79,8 @@ function module:setup()
             scoreItem.length_prev = scoreItem.length;
         end
     end)
+
+    vim.api.nvim_set_decoration_provider()
 end
 
 function module:on_buffer_text_changed(args)
@@ -106,6 +108,25 @@ function module:test_make_default_storeitem()
         time = 0,
         state_decrease = 0,
     };
+end
+
+function module:display_virtual_text()
+    local bnr = vim.api.nvim_get_current_buf(); --vim.fn.bufnr("%r");
+    local ns_id = vim.api.nvim_create_namespace('power-mode');
+    print("ns id:", ns_id);
+
+    local line_num = 5;
+    local col_num = 5;
+
+    local opts = {
+        end_line = 10,
+        id = 1,
+        virt_text = { { "demo", "IncSearch" } },
+        virt_text_pos = "right_align",
+    };
+
+    local mark_id = vim.api.nvim_buf_set_extmark(bnr, ns_id, line_num, col_num, opts);
+    return mark_id, ns_id;
 end
 
 function module:__test(imageNvim)
