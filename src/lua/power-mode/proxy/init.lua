@@ -1,4 +1,4 @@
--- @name Proxy
+-- @name proxy.lua
 -- @rev 2024/03/26
 -- @by Nowaaru
 -- @license gpl3.0
@@ -8,9 +8,12 @@
 -- metatable preservation into very, very
 -- careful consideration.
 
+local unpack = unpack or table.unpack;
+local switch, case, default, fallthrough = unpack(require("power-mode.proxy.switch"));
+
 ---@class ProxyConstructor
----@field __VERBOSE string Whether the constructor should automatically log changes.
----@overload fun(self: ProxyConstructor, of: table, proxyName?: string): Proxy
+---@field __VERBOSE boolean Whether the constructor should automatically log changes.
+---@overload fun(of: table, proxyName?: string): Proxy
 local ProxyConstructor = setmetatable({
     __VERBOSE = false,
 }, {
@@ -20,16 +23,78 @@ local ProxyConstructor = setmetatable({
     ---
     ---@return Proxy proxy An interface of "of."
     __call = function(self, of, proxyName)
+        local isUnknown = type(of) ~= "table";
+
         local obj = {};
         local ofMt = (function()
             local mt = getmetatable(of);
-            return type(mt) == "table" and mt or {};
+            local function eitherTypeIs(qualifier, ...)
+                for _, v in pairs({ ... }) do
+                    if (type(v) == qualifier) then
+                        return true;
+                    end
+                end
+
+                return false;
+            end
+
+            local types = function(...)
+                local out = { ... };
+                for i, v in pairs(out) do
+                    out[i] = type(v);
+                end
+
+                return out;
+            end
+
+            -- if (isUnknown) then
+            --     return setmetatable({
+            --
+            --     }, {
+            --         __add = function(t1, t2)
+            --             local type_t1, type_t2 = types(t1, t2);
+            --             switch(type_t1) {
+            --                 case("string") {
+            --                     function()
+            --                         switch(type_t2) {
+            --                             case("number") { fallthrough },
+            --                             case("string") {
+            --                                 function()
+            --                                     return t1 .. tostring(t2);
+            --                                 end
+            --                             },
+            --                         }
+            --                     end
+            --                 },
+            --
+            --                 case("number") {
+            --                     function()
+            --                         switch(type_t2) {
+            --                             case("number") {
+            --                                 function()
+            --                                     return t1 + t2;
+            --                                 end
+            --                             },
+            --
+            --                             case("string") {
+            --                                 function()
+            --                                     return tonumber(t2) and (t1 + tonumber(t2)) or tostring(t1) .. t2;
+            --                                 end
+            --                             }
+            --                         };
+            --                     end
+            --                 }
+            --             }
+            --         end
+            --     });
+            -- end
+
+            return (type(mt) == "table" and mt or {});
         end)()
 
         for i, v in pairs(of) do
             obj[i] = v;
         end
-
 
         ---@nodiscard
         local proxyFunctionHandler = function(metamethod, ...)
@@ -64,7 +129,7 @@ local ProxyConstructor = setmetatable({
                 __index = function(_, k)
                     local pfhResult = { proxyFunctionHandler("__index", obj, k) };
                     if ((table.maxn and table.maxn(pfhResult) or #pfhResult) == 0) then
-                        return rawget(obj, k);
+                        return rawget(rawget(ofMt, "__index") or {}, k);
                     end
 
                     return unpack(pfhResult);
@@ -72,11 +137,12 @@ local ProxyConstructor = setmetatable({
                 __newindex = function(this, k, v)
                     local onPropertyChangedListener = rawget(obj, "__" .. k .. "Changed");
                     local typeofListener = type(onPropertyChangedListener);
+                    local proxyId = proxyName or ("<anonymous:" .. tostring(this):gsub("table:", "") .. ">");
                     if (onPropertyChangedListener) then
                         if (typeofListener ~= "function") then
                             error(string.format(
-                                "power-mode.nvim/particle: property changed listener is not a function. (got %s)",
-                                type(onPropertyChangedListener)))
+                                "proxy (%s): property changed listener is not a function. (got %s)",
+                                proxyId, type(onPropertyChangedListener)))
                         end
 
                         if (self.__VERBOSE) then
@@ -84,11 +150,12 @@ local ProxyConstructor = setmetatable({
                                 string.format(
                                     "%s on proxy %s was changed. (%s -> %s)",
                                     k,
-                                    proxyName or ("<anonymous: %s>"):format(tostring(this):gsub("table:", "")),
+                                    proxyId,
                                     rawget(obj, k) or "<undefined>",
                                     type(v) ~= "nil" and v or "<undefined>"
                                 ));
                         end
+
                         onPropertyChangedListener(this, rawget(obj, k), v);
                     end
 
@@ -103,7 +170,9 @@ local ProxyConstructor = setmetatable({
                     end
                     rawset(obj, k, v)
                 end
-            }, ofMt))
+            }, {
+                __index = ofMt,
+            }))
     end
 });
 
