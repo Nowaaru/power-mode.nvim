@@ -102,6 +102,8 @@ local ProxyConstructor = setmetatable({
             if (type(maybe_func) == "function") then
                 return maybe_func(...);
             end
+
+            return maybe_func;
         end
 
         ---@class Proxy
@@ -132,7 +134,29 @@ local ProxyConstructor = setmetatable({
                         return rawget(rawget(ofMt, "__index") or {}, k);
                     end
 
-                    return unpack(pfhResult);
+                    -- this solves a bug that makes methods
+                    -- utilize a `self` that points to a potential
+                    -- metatable instead of just `obj`
+                    --
+                    -- WARNING: this makes it impossible to makes
+                    -- functions; every function has to be provided
+                    -- through a metatable (but why give an object)
+                    -- a function instead of a static class? :/
+                    local maybe_func_self_mapped_to_obj = {};
+                    for i, v in pairs(type(pfhResult[1]) == "table" and pfhResult[1] or {}) do
+                        if (type(v) == "function") then
+                            maybe_func_self_mapped_to_obj[i] = function(...)
+                                -- print("ok then wb here");
+                                local args = { ... }
+                                table.remove(args, 1);
+                                return rawget(rawget(pfhResult, 1), i)(of, unpack(args));
+                            end
+                        else
+                            maybe_func_self_mapped_to_obj[i] = v
+                        end
+                    end
+
+                    return maybe_func_self_mapped_to_obj[k];
                 end,
                 __newindex = function(this, k, v)
                     local onPropertyChangedListener = rawget(obj, "__" .. k .. "Changed");
@@ -166,13 +190,13 @@ local ProxyConstructor = setmetatable({
                     -- us to do it
                     local pfhResult = proxyFunctionHandler("__newindex", obj, k, v);
                     if (pfhResult == obj) then
+                        print("obj pfhresult")
                         return;
                     end
+
                     rawset(obj, k, v)
                 end
-            }, {
-                __index = ofMt,
-            }))
+            }, ofMt))
     end
 });
 
