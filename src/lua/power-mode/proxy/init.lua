@@ -17,11 +17,12 @@ local switch, case, default, fallthrough = unpack(require("power-mode.proxy.swit
 local ProxyConstructor = setmetatable({
     __VERBOSE = false,
 }, {
+    ---@generic T : table
     ---@param self ProxyConstructor The table responsible for this call.
-    ---@param of table The table that will be turned into a proxy.
+    ---@param of T The table that will be turned into a proxy.
     ---@param proxyName? table The name of the proxy.
     ---
-    ---@return Proxy proxy An interface of "of."
+    ---@return Proxy<T> proxy An interface of "of."
     __call = function(self, of, proxyName)
         local isUnknown = type(of) ~= "table";
 
@@ -106,7 +107,7 @@ local ProxyConstructor = setmetatable({
             return maybe_func;
         end
 
-        ---@class Proxy
+        ---@class Proxy<T>
         -- apply second layer metatable to preserve object mt
         -- also prioritize previous __index before defaulting to
         -- `of` index.
@@ -129,6 +130,20 @@ local ProxyConstructor = setmetatable({
                 end,
 
                 __index = function(_, k)
+                    local maybe_func = rawget(obj, k);
+                    print(("looking for [%s]: %s"):format(k, vim.inspect(obj)));
+                    if (type(maybe_func) == "function") then
+                        print("has! returning...");
+                        return function(...)
+                            local args = {...};
+                            table.remove(args, 1)
+                            maybe_func(obj, ...);
+                        end
+                    elseif (type(maybe_func) ~= "nil") then
+                        print("has. returning")
+                        return maybe_func;
+                    end
+
                     local pfhResult = { proxyFunctionHandler("__index", obj, k) };
                     if ((table.maxn and table.maxn(pfhResult) or #pfhResult) == 0) then
                         return rawget(rawget(ofMt, "__index") or {}, k);
@@ -152,6 +167,7 @@ local ProxyConstructor = setmetatable({
                                 return rawget(rawget(pfhResult, 1), i)(of, unpack(args));
                             end
                         else
+                            -- print('eyeye:', i);
                             maybe_func_self_mapped_to_obj[i] = v
                         end
                     end
@@ -162,6 +178,7 @@ local ProxyConstructor = setmetatable({
                     local onPropertyChangedListener = rawget(obj, "__" .. k .. "Changed");
                     local typeofListener = type(onPropertyChangedListener);
                     local proxyId = proxyName or ("<anonymous:" .. tostring(this):gsub("table:", "") .. ">");
+                    print(k, "->", v, vim.inspect(obj));
                     if (onPropertyChangedListener) then
                         if (typeofListener ~= "function") then
                             error(string.format(
@@ -200,7 +217,8 @@ local ProxyConstructor = setmetatable({
     end
 });
 
----@return Proxy proxy An interface of "of".
+---@generic T : table
+---@return Proxy<T> proxy An interface of "of".
 ProxyConstructor.new = function(...)
     return getmetatable(ProxyConstructor).__call(ProxyConstructor, ...);
 end
