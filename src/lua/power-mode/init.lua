@@ -4,6 +4,8 @@
 --]]
 
 local module = {};
+local unpack = table.unpack or unpack;
+local PowerWindow = require("power-mode.power-window");
 
 function module:assert(a, msg)
     if (not a) then
@@ -35,7 +37,6 @@ function module:setup()
     self:assert(supportsImages, "unable to locate plugin '3rd/image.nvim.'");
     print("3rd/image.nvim successfully found.");
 
-    -- self:__test(imageNvim);
     local powerModeGroup =
         vim.api.nvim_create_augroup("power-mode.nvim/handler", {
             clear = true,
@@ -58,6 +59,10 @@ function module:setup()
     local scoreDecreaseCount = 2;
     local scoreIncrease = 3;
     local scoreCap = 50;
+    local win = PowerWindow.new();
+    print("showing window");
+    win:Show();
+    win:Render();
 
     self.test_buffer_store = {};
     self.scoreIncreaseTimer = vim.loop.new_timer();
@@ -78,9 +83,15 @@ function module:setup()
             -- print(("score for bufid %s: %s"):format(bufferId, scoreItem.score));
             scoreItem.length_prev = scoreItem.length;
         end
-    end)
 
-    vim.api.nvim_set_decoration_provider()
+        vim.schedule(function()
+            local cursor_pos = vim.api.nvim_win_get_cursor(0);
+            win.X, win.Y = unpack(cursor_pos);
+            print("win:", vim.inspect(win));
+            win:Update({ "ligma balls." });
+            win:Render();
+        end)
+    end)
 end
 
 function module:on_buffer_text_changed(args)
@@ -95,8 +106,6 @@ function module:on_buffer_text_changed(args)
         storeItem = self:test_make_default_storeitem();
         self.test_buffer_store[bufferId] = storeItem;
     end
-
-    storeItem.length = bufferLength;
 end
 
 function module:test_make_default_storeitem()
@@ -110,24 +119,24 @@ function module:test_make_default_storeitem()
     };
 end
 
-function module:display_virtual_text()
-    local bnr = vim.api.nvim_get_current_buf(); --vim.fn.bufnr("%r");
-    local ns_id = vim.api.nvim_create_namespace('power-mode');
-    print("ns id:", ns_id);
-
-    local line_num = 5;
-    local col_num = 5;
-
-    local opts = {
-        end_line = 10,
-        id = 1,
-        virt_text = { { "demo", "IncSearch" } },
-        virt_text_pos = "right_align",
-    };
-
-    local mark_id = vim.api.nvim_buf_set_extmark(bnr, ns_id, line_num, col_num, opts);
-    return mark_id, ns_id;
-end
+-- function module:display_virtual_text()
+--     local bnr = vim.api.nvim_get_current_buf(); --vim.fn.bufnr("%r");
+--     local ns_id = vim.api.nvim_create_namespace('power-mode');
+--     print("ns id:", ns_id);
+--
+--     local line_num = 5;
+--     local col_num = 5;
+--
+--     local opts = {
+--         end_line = 10,
+--         id = 1,
+--         virt_text = { { "demo", "IncSearch" } },
+--         virt_text_pos = "right_align",
+--     };
+--
+--     local mark_id = vim.api.nvim_buf_set_extmark(bnr, ns_id, line_num, col_num, opts);
+--     return mark_id, ns_id;
+-- end
 
 function module:__test(imageNvim)
     local Particle = require("power-mode.particle").WithImages(imageNvim);
