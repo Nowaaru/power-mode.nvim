@@ -88,7 +88,7 @@ end
 ---@param color? string The color of the bar.
 function PowerLayer.__prototype:Bar(line, percentage, color)
     percentage = percentage or 1;
-    percentage = (percentage > 1) and percentage / 100 or percentage;
+    percentage = (percentage > 1) and (percentage / 100) or percentage;
     assert(self.__win, "layer must be bound to a window for this command to work.");
 
     table.insert(self.__instructions, PowerInstruction.new(
@@ -97,7 +97,7 @@ function PowerLayer.__prototype:Bar(line, percentage, color)
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
             self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
                 end_row = line,
-                end_col = math.max(self.__win.Width * percentage, self.__win.Width),
+                end_col = math.min(self.__win.Width * percentage, self.__win.Width),
                 hl_group = id,
                 priority = order;
             })
