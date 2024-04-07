@@ -6,7 +6,6 @@
 
 local NeovimPowerMode = {
     managed_buffers = {};
-    
 };
 NeovimPowerMode.__prototype = {};
 

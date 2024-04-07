@@ -3,9 +3,10 @@
 -- so i don't explode my computer by accident
 --]]
 
-local module = {};
-local unpack = table.unpack or unpack;
+local module      = {};
+local unpack      = table.unpack or unpack;
 local PowerWindow = require("power-mode.power-window");
+local PowerLayer  = require("power-mode.power-layer")
 
 function module:assert(a, msg)
     if (not a) then
@@ -37,6 +38,13 @@ function module:setup()
     self:assert(supportsImages, "unable to locate plugin '3rd/image.nvim.'");
     print("3rd/image.nvim successfully found.");
 
+    local a = vim.fn.getcwd() .. "/" .. vim.api.nvim_buf_get_name(0);
+    print("ayy: ", a);
+    if not a:match("test") then
+        return print("ok")
+    end
+
+
     local powerModeGroup =
         vim.api.nvim_create_augroup("power-mode.nvim/handler", {
             clear = true,
@@ -50,24 +58,32 @@ function module:setup()
         end
     });
 
+
     --[[
     --TODO: make proper scoring system
     --zzz :snore:
     --]]
 
+    self.test_buffer_store = {};
     local timerIntervalMs = 100;
     local scoreDecreaseCount = 2;
     local scoreIncrease = 3;
     local scoreCap = 50;
+    local ns_id = vim.api.nvim_create_namespace('power-mode');
     local win = PowerWindow.new();
+    win:BindToNamespace(ns_id);
+
+    local layer = PowerLayer.new("Ligma", ns_id, win.__buf);
+    layer:BindWindow(win);
+    layer:Fill("#DF2935");
+
+    win:AddLayer(layer);
     print("showing window");
     win:Show();
-    win:Render();
 
-    self.test_buffer_store = {};
     self.scoreIncreaseTimer = vim.loop.new_timer();
     self.scoreIncreaseTimer:start(0, timerIntervalMs, function()
-        for bufferId, scoreItem in pairs(self.test_buffer_store) do
+        for _, scoreItem in pairs(self.test_buffer_store) do
             scoreItem.time = scoreItem.time + timerIntervalMs;
             scoreItem.score = scoreItem.score +
                 math.min(scoreCap,
@@ -83,21 +99,31 @@ function module:setup()
             -- print(("score for bufid %s: %s"):format(bufferId, scoreItem.score));
             scoreItem.length_prev = scoreItem.length;
         end
+    end)
 
-        vim.schedule(function()
+    -- window moving and working the renderer
+    vim.api.nvim_create_autocmd("CursorMoved", {
+        group = powerModeGroup,
+        callback = function(_)
             local cursor_pos = vim.api.nvim_win_get_cursor(0);
             win.X, win.Y = unpack(cursor_pos);
-            print("win:", vim.inspect(win));
-            win:Update({ "ligma balls." });
-            win:Render();
-        end)
-    end)
+            win:RenderWindow();
+        end
+    });
+
+    self.decorationProvider = vim.api.nvim_set_decoration_provider(ns_id, {
+
+        on_end = function()
+            win:RenderComponents();
+        end,
+
+    });
 end
 
 function module:on_buffer_text_changed(args)
-    local match, buf, file, data = args.match, args.buf, args.file, args.data;
-    local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
-    local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
+    -- local match, buf, file, data = args.match, args.buf, args.file, args.data;
+    -- local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
+    -- local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
 
     -- print("buffer length:", bufferLength);
     local bufferId = tostring(args.buf);
