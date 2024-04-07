@@ -73,11 +73,15 @@ function module:setup()
     local win = PowerWindow.new();
     win:BindToNamespace(ns_id);
 
-    local layer = PowerLayer.new("Ligma", ns_id, win.__buf);
-    layer:BindWindow(win);
-    layer:Fill("#DF2935");
+    local background = PowerLayer.new("Background", ns_id, win.__buf);
+    background:BindWindow(win);
+    background:Background("#DF2935");
 
-    win:AddLayer(layer);
+    -- local bar = PowerLayer.new("Background", ns_id, win.__buf);
+    -- bar:BindWindow(win);
+    background:Bar(0, 0.5, "#CF3369");
+
+    win:AddLayer(background);
     print("showing window");
     win:Show();
 

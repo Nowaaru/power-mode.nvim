@@ -12,7 +12,7 @@ PowerInstruction.__prototype = {
     end,
     __tostring = function(self)
 
-        return ("PowerInstruction [%s]"):format(tostring(self._func):sub(10));
+        return ("PowerInstruction%s"):format(tostring(self._func):sub(10));
     end,
     _VERBOSE = false
 };
@@ -31,12 +31,12 @@ function PowerInstruction.new(func, name)
 end
 
 ---Execute the instruction on this layer.
-function PowerInstruction.__prototype:Execute()
+function PowerInstruction.__prototype:Execute(order)
     if (self._VERBOSE) then
         print(("executing instruction %s"):format(tostring(self)))
     end
 
-    self._func();
+    self._func(self._name, order);
 end
 
 ---Update the PowerInstruction with the new functionality.
