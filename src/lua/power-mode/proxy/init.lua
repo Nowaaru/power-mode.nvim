@@ -48,48 +48,6 @@ local ProxyConstructor = setmetatable({
                 return out;
             end
 
-            -- if (isUnknown) then
-            --     return setmetatable({
-            --
-            --     }, {
-            --         __add = function(t1, t2)
-            --             local type_t1, type_t2 = types(t1, t2);
-            --             switch(type_t1) {
-            --                 case("string") {
-            --                     function()
-            --                         switch(type_t2) {
-            --                             case("number") { fallthrough },
-            --                             case("string") {
-            --                                 function()
-            --                                     return t1 .. tostring(t2);
-            --                                 end
-            --                             },
-            --                         }
-            --                     end
-            --                 },
-            --
-            --                 case("number") {
-            --                     function()
-            --                         switch(type_t2) {
-            --                             case("number") {
-            --                                 function()
-            --                                     return t1 + t2;
-            --                                 end
-            --                             },
-            --
-            --                             case("string") {
-            --                                 function()
-            --                                     return tonumber(t2) and (t1 + tonumber(t2)) or tostring(t1) .. t2;
-            --                                 end
-            --                             }
-            --                         };
-            --                     end
-            --                 }
-            --             }
-            --         end
-            --     });
-            -- end
-
             return (type(mt) == "table" and mt or {});
         end)()
 
