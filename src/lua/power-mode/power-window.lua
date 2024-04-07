@@ -99,6 +99,12 @@ function PowerWindow.__prototype:RenderWindow()
     end
 end
 
+---Update the buffer with the provided lines.
+---
+---⚠ WARNING: Will clear all external marks.
+---
+---@param lines any
+---@return nil
 function PowerWindow.__prototype:Update(lines)
     return vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, lines or { "default text." });
 end
