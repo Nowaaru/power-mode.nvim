@@ -131,16 +131,16 @@ local ProxyConstructor = setmetatable({
 
                 __index = function(_, k)
                     local maybe_func = rawget(obj, k);
-                    print(("looking for [%s]: %s"):format(k, vim.inspect(obj)));
+                    -- print(("looking for [%s]: %s"):format(k, vim.inspect(obj)));
                     if (type(maybe_func) == "function") then
-                        print("has! returning...");
+                        -- print("has! returning...");
                         return function(...)
                             local args = {...};
                             table.remove(args, 1)
                             maybe_func(obj, ...);
                         end
                     elseif (type(maybe_func) ~= "nil") then
-                        print("has. returning")
+                        -- print("has. returning")
                         return maybe_func;
                     end
 
@@ -178,7 +178,7 @@ local ProxyConstructor = setmetatable({
                     local onPropertyChangedListener = rawget(obj, "__" .. k .. "Changed");
                     local typeofListener = type(onPropertyChangedListener);
                     local proxyId = proxyName or ("<anonymous:" .. tostring(this):gsub("table:", "") .. ">");
-                    print(k, "->", v, vim.inspect(obj));
+                    -- print(k, "->", v, vim.inspect(obj));
                     if (onPropertyChangedListener) then
                         if (typeofListener ~= "function") then
                             error(string.format(
@@ -207,7 +207,7 @@ local ProxyConstructor = setmetatable({
                     -- us to do it
                     local pfhResult = proxyFunctionHandler("__newindex", obj, k, v);
                     if (pfhResult == obj) then
-                        print("obj pfhresult")
+                        -- print("obj pfhresult")
                         return;
                     end
 
