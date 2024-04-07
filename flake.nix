@@ -3,11 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    neovim-flake.url = "github:notashelf/neovim-flake";
+    neovim-flake.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
+    ...
   }: let
     inherit (pkgs) neovimUtils;
     pkgs = import nixpkgs {
@@ -21,7 +24,7 @@
       prev.vimPlugins.power-mode-nvim = neovim-plugin;
     };
 
-    neovim-plugin = pkgs.stdenv.mkDerivation { 
+    neovim-plugin = pkgs.stdenv.mkDerivation {
       pname = "power-mode.nvim";
       version = "2024-03-07";
       src = ./src;
@@ -44,5 +47,9 @@
 
     overlays.default = defaultOverlay;
     overlays.power-mode-nvim = overlays.default;
+
+    devShells.x86_64-linux.default =
+      pkgs.mkShell {
+      };
   };
 }
