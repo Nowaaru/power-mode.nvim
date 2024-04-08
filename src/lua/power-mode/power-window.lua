@@ -32,8 +32,18 @@ end
 
 function PowerWindow.__prototype:AddLayer(...)
     for _, v in pairs({ ... }) do
+        for _, w in pairs(self.__layers) do
+            if (v == w) then
+                goto continue;
+            end
+        end
         table.insert(self.__layers, v);
+        ::continue::
     end
+end
+
+function PowerWindow.__prototype:ClearLayers()
+    self.__layers = {};
 end
 
 ---Binds this window to the given namespace id.
@@ -76,6 +86,17 @@ function PowerWindow.__prototype:RenderComponents()
             vim.api.nvim_win_hide(self.__win)
         end
     end
+
+    self:ClearLayers();
+end
+
+local function ConvertLinesToHashes(lines, length)
+    local lines_as_hashes = {};
+    for _ = 0, lines do
+        table.insert(lines_as_hashes, ("#"):rep(length));
+    end
+
+    return lines_as_hashes;
 end
 
 function PowerWindow.__prototype:RenderWindow()
@@ -86,12 +107,7 @@ function PowerWindow.__prototype:RenderWindow()
             self.__win = vim.api.nvim_open_win(self.__buf, false, self:GenerateRenderOptions());
         end
 
-        local lines_as_hashes = {};
-        for _ = 0, self.Height do
-            table.insert(lines_as_hashes, ("#"):rep(self.Width));
-        end
-
-        self:Update(lines_as_hashes);
+        -- self:Update(ConvertLinesToHashes(self.Height, self.Width));
     elseif (vim.fn.winbufnr(self.__buf) ~= -1) then
         if (self.__win) then
             vim.api.nvim_win_hide(self.__win)
@@ -106,30 +122,39 @@ end
 ---@param lines any
 ---@return nil
 function PowerWindow.__prototype:Update(lines)
-    return vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, lines or { "default text." });
+    return vim.api.nvim_buf_set_text(self.__buf, 0, 0, self.Height, self.Width, lines or { "default text." });
 end
 
 ---@class PowerWindowConstructor
 ---@param name string? The name of the Window.
 ---@return PowerWindow The new PowerWindow.
 function PowerWindow.new(name)
+    ---@class Object : PowerWindowPrototype
     local obj = {
         __buf = vim.api.nvim_create_buf(false, true),
     };
 
     function obj:____showingChanged(from, to)
         if (to) then
-            -- local cursor_pos = vim.api.nvim_win_get_cursor(0);
-            print("oh yeah we showing now");
-            print(("to (%s):"):format(self.name), to)
             self:RenderWindow();
         elseif (not from) then
             vim.api.nvim_win_hide(self.__win)
         end
     end
 
+    function obj:__WidthChanged()
+        print("width changed yeye");
+        return vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(self.Height, self.Width));
+    end
+
     obj.name = name or ("PowerWindow (%s)"):format(tostring(obj):sub(7));
-    --
+    obj.__WidthChanged({
+        Width = PowerWindow.__prototype.Width,
+        Height = PowerWindow.__prototype.Height,
+        __buf = obj.__buf
+    }); --
+    obj.__HeightChanged = obj.__WidthChanged;
+
     ---@class PowerWindow : PowerWindowPrototype, Proxy
     return Proxy(setmetatable(obj, PowerWindow.__prototype));
 end
