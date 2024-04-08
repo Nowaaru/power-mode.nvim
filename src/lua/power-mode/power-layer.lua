@@ -79,7 +79,7 @@ function PowerLayer.__prototype:Background(color)
             end_row = self.__win.Height,
             hl_eol = true,
             hl_group = id,
-                priority = order;
+            priority = order,
         })
     end, SpecialInstruction.BACKGROUND));
 end
@@ -94,12 +94,14 @@ function PowerLayer.__prototype:Bar(line, percentage, color)
     table.insert(self.__instructions, PowerInstruction.new(
         function(instructionId, order)
             local id = self:MakeLayerId(instructionId, color);
+            local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width) + 0.5);
+            print("ecol:", end_col);
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
             self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
                 end_row = line,
-                end_col = math.min(self.__win.Width * percentage, self.__win.Width),
+                end_col = end_col,
                 hl_group = id,
-                priority = order;
+                priority = order,
             })
         end, "Bar"))
 end
@@ -117,11 +119,24 @@ function PowerLayer.__prototype:MakeLayerId(instructionId, color)
 end
 
 function PowerLayer.__prototype:Clear()
+    self:Reset();
     self:SetSpecialInstruction(SpecialInstruction.BACKGROUND,
         PowerInstruction.new(function()
-            vim.api.nvim_buf_del_extmark(self.__buf, self.__ns, self.__ext);
+            if (self.__ext) then
+                vim.api.nvim_buf_del_extmark(self.__buf, self.__ns, self.__ext);
+            end
             self.__ext = nil;
         end, "Clear"));
+end
+
+function PowerLayer.__prototype:Reset()
+    -- TODO:
+    -- implement a way to keep track of all
+    -- created extmarks so i can flush them
+    -- when clear is called. preferably just
+    -- give them some kinda id to use for
+    -- extmarks
+    self.__instructions = { __special = {}, };
 end
 
 function PowerLayer.__prototype:Execute()
