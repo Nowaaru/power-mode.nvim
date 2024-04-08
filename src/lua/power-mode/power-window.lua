@@ -4,7 +4,9 @@ local Util = require("power-mode.util");
 ---@class PowerWindowPrototype
 ---@field __layers PowerLayer[]
 ---@field __win integer
+---@field __dbl_win integer
 ---@field __buf integer
+---@field __dbl_buf integer
 ---@field __ns integer
 ---@field X integer
 ---@field Y integer
@@ -15,7 +17,9 @@ PowerWindow.__prototype = {
     Height = 2,
     Background = 0x000000,
     __buf = nil,
+    __dbl_buf = nil,
     __win = nil,
+    __dbl_win = nil,
     __ns = nil,
     __showing = false,
     __layers = {},
@@ -60,11 +64,9 @@ function PowerWindow.__prototype:GenerateRenderOptions()
         row = self.Y,
         width = self.Width,
         height = self.Height,
-        -- win = 0,
         style = "minimal",
         relative = "cursor",
         anchor = "SW",
-        -- noautocmd = true,
         zindex = 25,
     }
 end
@@ -103,14 +105,17 @@ function PowerWindow.__prototype:RenderWindow()
     if (self.__showing) then
         if (self.__win) then
             vim.api.nvim_win_set_config(self.__win, self:GenerateRenderOptions());
+            vim.api.nvim_win_set_config(self.__dbl_win, self:GenerateRenderOptions());
         else
             self.__win = vim.api.nvim_open_win(self.__buf, false, self:GenerateRenderOptions());
+            self.__dbl_win = vim.api.nvim_open_win(self.__dbl_buf, false, self:GenerateRenderOptions());
         end
 
         -- self:Update(ConvertLinesToHashes(self.Height, self.Width));
     elseif (vim.fn.winbufnr(self.__buf) ~= -1) then
         if (self.__win) then
             vim.api.nvim_win_hide(self.__win)
+            vim.api.nvim_win_hide(self.__dbl_win)
         end
     end
 end
@@ -131,7 +136,15 @@ end
 function PowerWindow.new(name)
     ---@class Object : PowerWindowPrototype
     local obj = {
+        --[[
+        -- TODO: Implement double-buffering for the
+        -- PowerWindow object. Likely will have to
+        -- just dynamically swap the priority of the
+        -- buffers when the page is ready to be
+        -- swapped.
+        --]]
         __buf = vim.api.nvim_create_buf(false, true),
+        __dbl_buf = vim.api.nvim_create_buf(false, true),
     };
 
     function obj:____showingChanged(from, to)
