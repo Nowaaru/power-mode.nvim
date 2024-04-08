@@ -50,25 +50,27 @@ function module:setup()
             clear = true,
         });
 
-
-    vim.api.nvim_create_autocmd("TextChangedI", {
-        group = powerModeGroup,
-        callback = function(args)
-            self:on_buffer_text_changed(args);
-        end
-    });
-
-
     --[[
     --TODO: make proper scoring system
     --zzz :snore:
     --]]
 
+    local function updateWindow(win, layers, args)
+        local cursor_pos = vim.api.nvim_win_get_cursor(0);
+        win.X, win.Y = unpack(cursor_pos);
+        if (args) then
+            print("score:", self:store_item_or(args.buf).score);
+        end
+
+        win:AddLayer((unpack or table.unpack)(layers));
+        win:RenderWindow();
+    end
+
     self.test_buffer_store = {};
     local timerIntervalMs = 100;
     local scoreDecreaseCount = 2;
     local scoreIncrease = 3;
-    local scoreCap = 50;
+    local scoreCap = 10;
     local ns_id = vim.api.nvim_create_namespace('power-mode');
     local win = PowerWindow.new();
     win:BindToNamespace(ns_id);
@@ -77,41 +79,52 @@ function module:setup()
     background:BindWindow(win);
     background:Background("#DF2935");
 
-    -- local bar = PowerLayer.new("Background", ns_id, win.__buf);
-    -- bar:BindWindow(win);
-    background:Bar(0, 0.5, "#CF3369");
+    local bar = PowerLayer.new("Bar", ns_id, win.__buf);
+    bar:BindWindow(win);
+
 
     win:AddLayer(background);
     print("showing window");
     win:Show();
 
+    -- TODO: Implement score decay type option
+    -- (stamina, rapid-decay, no-decay)
     self.scoreIncreaseTimer = vim.loop.new_timer();
     self.scoreIncreaseTimer:start(0, timerIntervalMs, function()
         for _, scoreItem in pairs(self.test_buffer_store) do
             scoreItem.time = scoreItem.time + timerIntervalMs;
             scoreItem.score = scoreItem.score +
-                math.min(scoreCap,
-                    scoreIncrease * math.abs(scoreItem.length_prev - scoreItem.length) / (timerIntervalMs * 0.5));
+                math.max(0, math.min(scoreCap,
+                    scoreIncrease * math.abs(scoreItem.length_prev - scoreItem.length) / (timerIntervalMs * 0.5)));
 
             if (scoreItem.state_decrease >= scoreDecreaseCount) then
                 scoreItem.state_decrease = 0;
-                scoreItem.score = math.max(scoreItem.score - ((3 * scoreIncrease) / timerIntervalMs), 0);
+                scoreItem.score = math.max(scoreItem.score - math.abs((3 * scoreIncrease) / timerIntervalMs), 0);
+                vim.schedule(function()
+                    bar:Clear();
+                    bar:Bar(0, scoreItem.score / scoreCap, "#CF3369");
+                    updateWindow(win, { background, bar });
+                end)
             else
                 scoreItem.state_decrease = scoreItem.state_decrease + 1
             end;
 
             -- print(("score for bufid %s: %s"):format(bufferId, scoreItem.score));
-            scoreItem.length_prev = scoreItem.length;
         end
     end)
 
     -- window moving and working the renderer
-    vim.api.nvim_create_autocmd("CursorMoved", {
+    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         group = powerModeGroup,
-        callback = function(_)
-            local cursor_pos = vim.api.nvim_win_get_cursor(0);
-            win.X, win.Y = unpack(cursor_pos);
-            win:RenderWindow();
+        callback = function(args)
+            updateWindow(win, args)
+        end
+    });
+
+    vim.api.nvim_create_autocmd("TextChangedI", {
+        group = powerModeGroup,
+        callback = function(args)
+            self:on_buffer_text_changed(args);
         end
     });
 
@@ -125,17 +138,25 @@ function module:setup()
 end
 
 function module:on_buffer_text_changed(args)
-    -- local match, buf, file, data = args.match, args.buf, args.file, args.data;
-    -- local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
-    -- local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
+    local match, buf, file, data = args.match, args.buf, args.file, args.data;
+    local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
+    local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
 
     -- print("buffer length:", bufferLength);
-    local bufferId = tostring(args.buf);
+    local storeItem = self:store_item_or(args.buf);
+    storeItem.length_prev = storeItem.length or -1;
+    storeItem.length = bufferLength;
+end
+
+function module:store_item_or(bufferId)
+    bufferId = tostring(bufferId);
     local storeItem = self.test_buffer_store[bufferId];
     if (not storeItem) then
         storeItem = self:test_make_default_storeitem();
         self.test_buffer_store[bufferId] = storeItem;
     end
+
+    return storeItem;
 end
 
 function module:test_make_default_storeitem()
@@ -157,7 +178,7 @@ end
 --     local line_num = 5;
 --     local col_num = 5;
 --
---     local opts = {
+--     local opts = store_item_r
 --         end_line = 10,
 --         id = 1,
 --         virt_text = { { "demo", "IncSearch" } },
