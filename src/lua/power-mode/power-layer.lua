@@ -95,7 +95,6 @@ function PowerLayer.__prototype:Bar(line, percentage, color)
         function(instructionId, order)
             local id = self:MakeLayerId(instructionId, color);
             local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width) + 0.5);
-            print("ecol:", end_col);
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
             self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
                 end_row = line,
