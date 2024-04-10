@@ -130,7 +130,7 @@ function module:setup()
 
     self.decorationProvider = vim.api.nvim_set_decoration_provider(ns_id, {
 
-        on_end = function()
+        on_start = function()
             win:RenderComponents();
         end,
 
