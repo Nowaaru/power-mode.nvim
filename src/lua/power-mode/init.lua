@@ -192,7 +192,7 @@ end
 
 function module:test_make_default_storeitem()
     return {
-        length_prev = 0,
+        length_prev = -1,
         length = 0,
 
         score = 0,
