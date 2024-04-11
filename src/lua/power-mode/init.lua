@@ -80,7 +80,7 @@ function module:setup()
             end
         });
     local timerIntervalMs = (1 / 60) * 1000;
-    local scoreDecreaseCount = 2;
+    local scoreDecreaseCount = 1;
     local scoreIncrease = 3;
     local scoreCap = 10;
     local ns_id = vim.api.nvim_create_namespace('power-mode');
@@ -132,13 +132,14 @@ function module:setup()
                     scoreItem.score = math.max(scoreItem.score - math.abs((3 * scoreIncrease) / timerIntervalMs), 0);
                     vim.schedule(function()
                         bar:Clear();
-                        bar:Bar(0, scoreItem.score / scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
+                        bar:Bar(0, 1, scoreItem.score / scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
                         updateWindow(win, { background, bar });
                     end)
                 else
                     scoreItem.state_decrease = scoreItem.state_decrease + 1
                 end;
             end
+
             ::update_length::
             scoreItem.length_prev = scoreItem.length;
         end

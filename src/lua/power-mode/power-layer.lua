@@ -85,9 +85,13 @@ function PowerLayer.__prototype:Background(color)
 end
 
 ---Fill a bar with a color.
+---Uses the background highlight.
 ---@param color? string The color of the bar.
-function PowerLayer.__prototype:Bar(line, percentage, color)
-    percentage = percentage or 1;
+function PowerLayer.__prototype:Bar(line, height, percentage, color)
+    line = math.floor(line + 0.5) or 0
+    color = color or "#000000";
+    height = height or 1
+    percentage = tonumber(percentage) or 1;
     percentage = (percentage > 1) and (percentage / 100) or percentage;
     assert(self.__win, "layer must be bound to a window for this command to work.");
 
@@ -97,17 +101,12 @@ function PowerLayer.__prototype:Bar(line, percentage, color)
             local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width) + 0.5);
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
             self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
-                end_row = line,
+                end_row = math.min(math.floor(line + (height - 1)), self.__win.Height - 1),
                 end_col = end_col,
                 hl_group = id,
                 priority = order,
             })
         end, "Bar"))
-end
-
----comment
----@param hl_name string The name of the highlight to get.
-function PowerLayer.__prototype:GetHighlight(hl_name)
 end
 
 function PowerLayer.__prototype:MakeLayerId(instructionId, color)
