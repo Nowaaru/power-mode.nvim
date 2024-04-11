@@ -94,8 +94,9 @@ end
 
 local function ConvertLinesToHashes(lines, length)
     local lines_as_hashes = {};
+    local line_dummy = " " -- "#"
     for _ = 0, lines do
-        table.insert(lines_as_hashes, ("#"):rep(length));
+        table.insert(lines_as_hashes, (line_dummy):rep(length));
     end
 
     return lines_as_hashes;
@@ -108,7 +109,6 @@ function PowerWindow.__prototype:RenderWindow()
         else
             self.__win = vim.api.nvim_open_win(self.__buf, false, self:GenerateRenderOptions());
         end
-
         -- self:Update(ConvertLinesToHashes(self.Height, self.Width));
     elseif (vim.fn.winbufnr(self.__buf) ~= -1) then
         if (self.__win) then
