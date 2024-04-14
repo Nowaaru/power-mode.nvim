@@ -92,7 +92,7 @@ function PowerLayer.__prototype:Bar(line, height, percentage, color)
     color = color or "#000000";
     height = height or 1
     percentage = tonumber(percentage) or 1;
-    percentage = (percentage > 1) and (percentage / 100) or percentage;
+    percentage = math.max(0, math.min(percentage, 1));
     assert(self.__win, "layer must be bound to a window for this command to work.");
 
     table.insert(self.__instructions, PowerInstruction.new(
