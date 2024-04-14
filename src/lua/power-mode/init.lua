@@ -99,16 +99,47 @@ function module:setup()
     -- TODO: Implement score decay type option
     -- (stamina, rapid-decay, no-decay)
 
+    -- TODO: Implement function-based modal multipliers
+    -- to allow users to achieve efficiency goals
+
     -- TODO: Implement a "flow" multiplier where as long
     -- as the user makes consistent changes then a
-    -- multiplier is applied to the added score.
-    self.scoreIncreaseTimer = vim.loop.new_timer();
-    self.scoreIncreaseTimer:start(0, (timerIntervalMs < 1) and timerIntervalMs * 1000 or timerIntervalMs, function()
-        for buf, scoreItem in pairs(self.test_buffer_store) do
+    -- multiplier is applied to the added score. Length
+    -- does of changes does not matter as much to prevent
+    -- abuse of other modes.
+    --
+    -- Non-insert mode changes count as 2.
+
+    -- TODO: Add some kind of consistency indicator bar
     local timerIntervalMs          = (1 / 60) * 1000;
     local scoreDecreaseCount       = 3 * timerIntervalMs;
     local scoreIncrease            = 3;
     local scoreCap                 = 10;
+
+    local timeBeforeComboRemovalMs = 15 * 1000; -- 15 seconds (testing, maybe permanent as a default?)
+    local flowMaxMultiplier        = 2.87;
+
+    local euler                    = 2.71828
+    local calculateConsistency     = function(amountCharactersTyped, converge)
+        converge = converge or flowMaxMultiplier;
+        return 1 + math.max(1, math.min(converge, 0.8 * math.log(math.pow(amountCharactersTyped, 0.7), euler)));
+    end
+
+    local consistencyDecreaseRate  = 1 / (math.pow(flowMaxMultiplier, 1.3)); -- @ 2.87 ~ 8% loss per tick
+
+    local fixedInterval            = (timerIntervalMs < 1) and timerIntervalMs * 1000 or timerIntervalMs;
+
+    --- WARNING: Modes not specified in this
+    --- table will **not** be whitelisted.
+    local modalMultipliers         = {
+        v = 2.5,
+        n = 2,
+        i = 1
+    };
+
+    self.scoreIncreaseTimer        = vim.loop.new_timer();
+    self.scoreIncreaseTimer:start(0, fixedInterval, function()
+        for buffer, scoreItem in pairs(self.test_buffer_store) do
             if scoreItem.length_prev == -1 then
                 goto update_length;
             end
@@ -121,28 +152,41 @@ function module:setup()
                     doesn't matter what the changes were! just needs
                     to be not nothing
                 --]]
+                --TODO: move into anywhere else please god
+                scoreItem.consistency = calculateConsistency(scoreItem.combo);
+                local currentMode = vim.api.nvim_get_mode().mode;
+                local isCurrentModeNormal = currentMode == "n";
                 local lengthDelta = (scoreItem.length_prev - scoreItem.length);
-                local lengthDeltaAbs = math.abs(lengthDelta)
+                local lengthDeltaAbs = math.abs(lengthDelta) * (modalMultipliers[currentMode] or 1)
+                local lengthDeltaModalClamped = isCurrentModeNormal and math.log10(lengthDeltaAbs) or lengthDeltaAbs;
+                local baseAddedScore = math.max(0, math.min(scoreCap,
+                    (scoreIncrease * lengthDeltaModalClamped * scoreItem.consistency) / (timerIntervalMs * 0.5)));
+
+
                 scoreItem.time = scoreItem.time + timerIntervalMs;
-                scoreItem.score = scoreItem.score +
-                    math.max(0, math.min(scoreCap,
-                        (scoreIncrease * lengthDeltaAbs) / (timerIntervalMs * 0.5)));
+                scoreItem.score = math.min(scoreCap, scoreItem.score + (baseAddedScore));
 
                 if (scoreItem.state_decrease >= scoreDecreaseCount) then
-                    scoreItem.state_decrease = 0;
-                    scoreItem.score = math.max(scoreItem.score - math.abs((3 * scoreIncrease) / timerIntervalMs), 0);
                     vim.schedule(function()
                         bar:Clear();
                         bar:Bar(0, 1, scoreItem.score / scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
                         updateWindow(win, { background, bar });
                     end)
-                else
+                    -- if (scoreItem.state_decrease % scoreDecreaseCount == 0) then
+                    scoreItem.score = math.max(scoreItem.score - math.abs((0.5 * scoreIncrease) / timerIntervalMs), 0)
+                    -- end
+                end
+
                 if (scoreItem.time > timeBeforeComboRemovalMs) then
                     scoreItem.combo = 0;
                 end
 
+                if (scoreItem.length == scoreItem.length_prev) then
                     scoreItem.state_decrease = scoreItem.state_decrease + 1
-                end;
+                    scoreItem.consistency = (scoreItem.consistency - consistencyDecreaseRate)
+                else
+                    scoreItem.state_decrease = 0;
+                end
             end
 
             ::update_length::
