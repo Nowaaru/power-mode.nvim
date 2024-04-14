@@ -136,6 +136,10 @@ function module:setup()
                         updateWindow(win, { background, bar });
                     end)
                 else
+                if (scoreItem.time > timeBeforeComboRemovalMs) then
+                    scoreItem.combo = 0;
+                end
+
                     scoreItem.state_decrease = scoreItem.state_decrease + 1
                 end;
             end
@@ -171,12 +175,13 @@ function module:setup()
 end
 
 function module:on_buffer_text_changed(args)
-    local match, buf, file, data = args.match, args.buf, args.file, args.data;
     local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
     local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
 
     local storeItem = self:store_item_or(args.buf);
     storeItem.length = bufferLength;
+    storeItem.time = 0;           -- time should reset
+    storeItem.state_decrease = 0; -- since they typed, resume combo
 end
 
 function module:store_item_or(bufferId)
