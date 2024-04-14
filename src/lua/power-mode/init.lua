@@ -66,7 +66,7 @@ function module:setup()
         win:RenderWindow();
     end
 
-    ---@type table<string, table>
+    ---@type table<string, StoreItem>
     self.test_buffer_store = setmetatable({},
         {
             __index = function(this, k)
@@ -191,12 +191,22 @@ function module:store_item_or(bufferId)
 end
 
 function module:test_make_default_storeitem()
+    ---@class StoreItem
+    ---@field length_prev integer The length of the buffer during the last pass.
+    ---@field length integer The current length of the buffer.
+    ---@field score number The score belonging to this buffer.
+    ---@field time integer The remaining time before the combo resets.
+    ---@field combo integer How long the user has been consistently typing.
+    ---@field consistency number The consistency multiplier derived from the combo.
+    ---@field state_decrease integer How many passes have occured without a notable change.
     return {
         length_prev = -1,
         length = 0,
 
         score = 0,
         time = 0,
+        combo = 0,
+        consistency = 0,
         state_decrease = 0,
     };
 end
