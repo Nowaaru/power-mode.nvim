@@ -211,25 +211,6 @@ function module:test_make_default_storeitem()
     };
 end
 
--- function module:display_virtual_text()
---     local bnr = vim.api.nvim_get_current_buf(); --vim.fn.bufnr("%r");
---     local ns_id = vim.api.nvim_create_namespace('power-mode');
---     print("ns id:", ns_id);
---
---     local line_num = 5;
---     local col_num = 5;
---
---     local opts = store_item_r
---         end_line = 10,
---         id = 1,
---         virt_text = { { "demo", "IncSearch" } },
---         virt_text_pos = "right_align",
---     };
---
---     local mark_id = vim.api.nvim_buf_set_extmark(bnr, ns_id, line_num, col_num, opts);
---     return mark_id, ns_id;
--- end
-
 function module:__test(imageNvim)
     local Particle = require("power-mode.particle").WithImages(imageNvim);
 
