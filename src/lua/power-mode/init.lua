@@ -167,11 +167,6 @@ function module:setup()
                 scoreItem.score = math.min(scoreCap, scoreItem.score + (baseAddedScore));
 
                 if (scoreItem.state_decrease >= scoreDecreaseCount) then
-                    vim.schedule(function()
-                        bar:Clear();
-                        bar:Bar(0, 1, scoreItem.score / scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
-                        updateWindow(win, { background, bar });
-                    end)
                     -- if (scoreItem.state_decrease % scoreDecreaseCount == 0) then
                     scoreItem.score = math.max(scoreItem.score - math.abs((0.5 * scoreIncrease) / timerIntervalMs), 0)
                     -- end
@@ -190,7 +185,16 @@ function module:setup()
             end
 
             ::update_length::
+            local score_maintained = scoreItem.score / scoreCap;
             scoreItem.length_prev = scoreItem.length;
+            vim.schedule(function()
+                if (buffer == tostring(vim.api.nvim_get_current_buf())) then
+                    bar:Clear();
+                    -- print(scoreItem.score, ":", score_maintained, ("(%i/%s)"):format(score_maintained, scoreCap))
+                    bar:Bar(0, 1, score_maintained, "#FFFFFF" --[[  "#CF3369" ]]);
+                    updateWindow(win, { background, bar });
+                end
+            end)
         end
     end)
 
