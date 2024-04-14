@@ -79,10 +79,7 @@ function module:setup()
                 return (this[vim.api.nvim_get_current_buf()] or this:test_make_default_storeitem()).score
             end
         });
-    local timerIntervalMs = (1 / 60) * 1000;
-    local scoreDecreaseCount = 1;
-    local scoreIncrease = 3;
-    local scoreCap = 10;
+
     local ns_id = vim.api.nvim_create_namespace('power-mode');
     local win = PowerWindow.new();
     win:BindToNamespace(ns_id);
@@ -108,6 +105,10 @@ function module:setup()
     self.scoreIncreaseTimer = vim.loop.new_timer();
     self.scoreIncreaseTimer:start(0, (timerIntervalMs < 1) and timerIntervalMs * 1000 or timerIntervalMs, function()
         for buf, scoreItem in pairs(self.test_buffer_store) do
+    local timerIntervalMs          = (1 / 60) * 1000;
+    local scoreDecreaseCount       = 3 * timerIntervalMs;
+    local scoreIncrease            = 3;
+    local scoreCap                 = 10;
             if scoreItem.length_prev == -1 then
                 goto update_length;
             end
