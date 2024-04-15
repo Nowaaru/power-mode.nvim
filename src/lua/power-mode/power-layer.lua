@@ -1,3 +1,6 @@
+--TODO: make special animation_state key in layer
+--to keep track of fade animations and tweens
+
 ---@enum (key) SpecialInstruction
 local SpecialInstruction = {
     BACKGROUND = "bg",
@@ -98,10 +101,11 @@ function PowerLayer.__prototype:Bar(line, height, percentage, color)
     table.insert(self.__instructions, PowerInstruction.new(
         function(instructionId, order)
             local id = self:MakeLayerId(instructionId, color);
+            local end_row = math.min(math.floor(line + (height - 1)), self.__win.Height);
             local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width) + 0.5);
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
             self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
-                end_row = math.min(math.floor(line + (height - 1)), self.__win.Height - 1),
+                end_row = end_row,
                 end_col = end_col,
                 hl_group = id,
                 priority = order,
