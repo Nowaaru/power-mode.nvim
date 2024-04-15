@@ -26,7 +26,7 @@ local ProxyConstructor = setmetatable({
     __call = function(self, of, proxyName)
         local isUnknown = type(of) ~= "table";
 
-        local obj = {};
+        local obj = of
         local ofMt = (function()
             local mt = getmetatable(of);
             local function eitherTypeIs(qualifier, ...)
