@@ -5,9 +5,11 @@
 
 local module      = {};
 local unpack      = table.unpack or unpack;
-local PowerWindow = require("power-mode.power-window");
+local PowerWindow = require("power-mode.power-window")
 local PowerLayer  = require("power-mode.power-layer")
 local Scorekeep   = require("power-mode.scorekeep")
+local util        = require("power-mode.util")
+local AnchorType  = require("power-mode.power-window.anchortype")
 
 function module:assert(a, msg)
     if (not a) then
@@ -56,20 +58,22 @@ function module:setup()
     --zzz :snore:
     --]]
 
+    ---@param win PowerWindow
+    ---@param layers PowerLayer[]
     local function updateWindow(win, layers, args)
-        local cursor_pos = vim.api.nvim_win_get_cursor(0);
-        win.X, win.Y = unpack(cursor_pos);
-        if (args) then
-            -- print("score:", self:store_item_or(args.buf).score);
-        end
+        local Y, X = unpack(vim.api.nvim_win_get_cursor(0));
+        win.Y, win.X = -1, 0;
 
         win:AddLayer((unpack or table.unpack)(layers));
         win:RenderWindow();
+        win:RenderComponents();
     end
 
     local ns_id = vim.api.nvim_create_namespace('power-mode');
     local win = PowerWindow.new();
+    win.RenderOptions.relative = AnchorType.CURSOR
     win:BindToNamespace(ns_id);
+    win.Width = 32
 
     local background = PowerLayer.new("Background", ns_id, win.__buf);
     background:BindWindow(win);
@@ -96,23 +100,28 @@ function module:setup()
     scorekeep:Start();
     ---@param scoreItem ScoreEntry
     scorekeep.ScoreUpdated = function(scoreItem)
-        bar:Clear();
-        bar:Bar(0, 1, scoreItem.score, "#FFFFFF" --[[  "#CF3369" ]]);
-        updateWindow(win, { background, bar });
+        -- win:RenderComponents()
+        -- print(("GRRRR: %s"):format(scoreItem.score))
     end
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         group = powerModeGroup,
         callback = function(args)
             scorekeep:Ensure(args.buf);
-            updateWindow(win, args)
+            updateWindow(win, {background, bar}, args)
         end
     });
 
     self.decorationProvider = vim.api.nvim_set_decoration_provider(ns_id, {
 
-        on_start = function()
-            win:RenderComponents();
+        on_start = function(args)
+            local scoreItem = scorekeep:Get()
+            if (scoreItem) then
+                bar:Clear();
+                bar:Bar(0, 1, scoreItem.score / scorekeep.scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
+                win:RenderComponents();
+                updateWindow(win, {background, bar}, args)
+            end
         end,
 
     });
