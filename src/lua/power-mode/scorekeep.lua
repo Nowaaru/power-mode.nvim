@@ -1,13 +1,85 @@
 ---@class ScorekeepConstructor
-local Scorekeep       = {};
-local euler           = 2.71828
+local Scorekeep                               = {};
+local euler                                   = 2.71828
+
+local DefaultScoreHandler                     = function(self, scoreItem)
+    -- local self.timerIntervalMs          = (1 / 60) * 1000;
+    -- local
+    --
+    -- local self.
+    -- local self.flowMaxMultiplier        = 2.87;
+    --
+    --
+
+
+    if scoreItem.length_prev == -1 then
+        goto update_length;
+    end
+    do
+        local modalMultipliers = self._modalMultipliers;
+
+        --[[
+            --do-end required to prevent scope-hopping
+            --]]
+        --[[
+                    doesn't matter what the changes were! just needs
+                    to be not nothing
+                --]]
+        --TODO: move into anywhere else please god
+        scoreItem.consistency = self:calculateConsistency(scoreItem.combo);
+        local currentMode = vim.api.nvim_get_mode().mode;
+        local isCurrentModeNormal = currentMode == "n";
+        local lengthDelta = (scoreItem.length_prev - scoreItem.length);
+        local lengthDeltaAbs = math.abs(lengthDelta) * (modalMultipliers[currentMode] or 1)
+        local lengthDeltaModalClamped = isCurrentModeNormal and math.log10(lengthDeltaAbs) or lengthDeltaAbs;
+        local baseAddedScore = math.max(0, math.min(self.scoreCap,
+            (self.scoreIncrease * lengthDeltaModalClamped * scoreItem.consistency) / (self.timerIntervalMs * 0.5)));
+
+
+        scoreItem.time = scoreItem.time + self.timerIntervalMs;
+        scoreItem.score = math.min(self.scoreCap, scoreItem.score + (baseAddedScore));
+
+        if (scoreItem.state_decrease >= self.scoreDecreaseCount) then
+            -- if (scoreItem.state_decrease % scoreDecreaseCount == 0) then
+            scoreItem.score = math.max(
+                scoreItem.score - math.abs((0.5 * self.scoreIncrease) / self.timerIntervalMs),
+                0)
+            -- end
+        end
+
+        if (scoreItem.time > self.timeBeforeComboRemovalMs) then
+            scoreItem.combo = 0;
+        end
+
+        if (scoreItem.length == scoreItem.length_prev) then
+            scoreItem.state_decrease = scoreItem.state_decrease + 1
+            scoreItem.consistency = (scoreItem.consistency - self.consistencyDecreaseRate)
+        else
+            scoreItem.state_decrease = 0;
+        end
+    end
+
+    ::update_length::
+    scoreItem.length_prev = scoreItem.length;
+    if self.ScoreUpdated then
+        vim.schedule(function()
+            self.ScoreUpdated(scoreItem);
+        end)
+    end
+end
+local MakeDefaultScoreHandler                 = function(...)
+    return setmetatable({}, {
+        __tostring = "Default Score Handler",
+        __call = DefaultScoreHandler(...)
+    })
+end
 
 ---@class ScorekeepPrototype
 ---@field _buffers table<string, ScoreEntry>
 ---@field _modalMultipliers table<string, number>
 ---@field scoreIncreaseTimer unknown
 ---@field ScoreUpdated function?
-Scorekeep.__prototype = {
+Scorekeep.__prototype                         = {
     --- WARNING: Modes not specified in this
     --- table will **not** be whitelisted.
     _modalMultipliers        = {
@@ -16,84 +88,24 @@ Scorekeep.__prototype = {
         i = 1
     },
 
-    flowMaxMultiplier        = 2.87,
     scoreIncreaseTimer       = nil,
+    ScoreUpdated             = nil,
+
     timerIntervalMs          = (1 / 60) * 1000,
-    scoreDecreaseCount       = 3,
     timeBeforeComboRemovalMs = 15 * 1000, -- 15 seconds (testing, maybe permanent as a default?)
-    ScoreUpdated = nil;
+
+    flowMaxMultiplier        = 2.87,
+    consistencyDecreaseRate  = nil,
+
+    scoreDecreaseCount       = 3,
+    scoreIncrease            = 3,
+    scoreCap                 = 10,
+    ScoreHandler             = MakeDefaultScoreHandler,
+
     _buffers                 = {},
-
-    ScoreHandler             = setmetatable({}, {
-        __tostring = "Default Score Handler",
-        __call = function(self, scoreItem)
-            -- local self.timerIntervalMs          = (1 / 60) * 1000;
-            -- local
-            -- local self.scoreIncrease            = 3;
-            -- local self.scoreCap                 = 10;
-            --
-            -- local self.
-            -- local self.flowMaxMultiplier        = 2.87;
-            --
-            --
-            -- local self.consistencyDecreaseRate  = 1 / (math.pow(self.flowMaxMultiplier, 1.3)); -- @ 2.87 ~ 8% loss per tick
-
-
-            if scoreItem.length_prev == -1 then
-                goto update_length;
-            end
-            local modalMultipliers = self._modalMultipliers;
-
-            --[[
-            --do-end required to prevent scope-hopping
-            --]]
-            --[[
-                    doesn't matter what the changes were! just needs
-                    to be not nothing
-                --]]
-            --TODO: move into anywhere else please god
-            scoreItem.consistency = self:calculateConsistency(scoreItem.combo);
-            local currentMode = vim.api.nvim_get_mode().mode;
-            local isCurrentModeNormal = currentMode == "n";
-            local lengthDelta = (scoreItem.length_prev - scoreItem.length);
-            local lengthDeltaAbs = math.abs(lengthDelta) * (modalMultipliers[currentMode] or 1)
-            local lengthDeltaModalClamped = isCurrentModeNormal and math.log10(lengthDeltaAbs) or lengthDeltaAbs;
-            local baseAddedScore = math.max(0, math.min(self.scoreCap,
-                (self.scoreIncrease * lengthDeltaModalClamped * scoreItem.consistency) / (self.timerIntervalMs * 0.5)));
-
-
-            scoreItem.time = scoreItem.time + self.timerIntervalMs;
-            scoreItem.score = math.min(self.scoreCap, scoreItem.score + (baseAddedScore));
-
-            if (scoreItem.state_decrease >= self.scoreDecreaseCount) then
-                -- if (scoreItem.state_decrease % scoreDecreaseCount == 0) then
-                scoreItem.score = math.max(scoreItem.score - math.abs((0.5 * self.scoreIncrease) / self.timerIntervalMs),
-                    0)
-                -- end
-            end
-
-            if (scoreItem.time > self.timeBeforeComboRemovalMs) then
-                scoreItem.combo = 0;
-            end
-
-            if (scoreItem.length == scoreItem.length_prev) then
-                scoreItem.state_decrease = scoreItem.state_decrease + 1
-                scoreItem.consistency = (scoreItem.consistency - self.consistencyDecreaseRate)
-            else
-                scoreItem.state_decrease = 0;
-            end
-
-            ::update_length::
-            scoreItem.length_prev = scoreItem.length;
-            if self.ScoreUpdated then
-                vim.schedule(function()
-                    self.ScoreUpdated(scoreItem);
-                end)
-            end
-        end
-    })
-
 };
+
+Scorekeep.__prototype.consistencyDecreaseRate = 1 / (math.pow(Scorekeep.__prototype.flowMaxMultiplier, 1.3)); -- @ 2.87 ~ 8% loss per tick;
 
 function Scorekeep:MakeDefault()
     ---@class ScoreEntry
