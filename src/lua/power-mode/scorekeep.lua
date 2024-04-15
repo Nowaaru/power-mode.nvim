@@ -12,6 +12,7 @@ local DefaultScoreHandler                     = function(self, scoreItem)
     --
 
 
+    local old_score = scoreItem.score;
     if scoreItem.length_prev == -1 then
         goto update_length;
     end
@@ -62,8 +63,11 @@ local DefaultScoreHandler                     = function(self, scoreItem)
     ::update_length::
     scoreItem.length_prev = scoreItem.length;
     if self.ScoreUpdated then
+        local cur_score = scoreItem.score;
         vim.schedule(function()
-            self.ScoreUpdated(scoreItem);
+            if (old_score ~= cur_score) then
+                self.ScoreUpdated(scoreItem);
+            end
         end)
     end
 end
@@ -139,15 +143,21 @@ function Scorekeep.__prototype:Ensure(bufferId)
     return storeItem;
 end
 
+function Scorekeep.__prototype:Get(bufferId)
+    if (tonumber(bufferId) == 0 or tonumber(bufferId) == nil) then
+        bufferId = tostring(vim.api.nvim_get_current_buf())
+    end
+    return self._buffers[tostring(bufferId)]
+end
+
 function Scorekeep.__prototype:on_buffer_text_changed(args)
     local managed_buf = self._buffers[tostring(args.buf)];
     if (not managed_buf) then
-        return;
+        return print("unmanaged buf:", args.buf)
     end
 
     local bufferOffset = 2; -- unsure why but the buffer length is always increased by 2 :thonk:
     local bufferLength = math.max(0, vim.fn.line2byte(vim.fn.line("$") + 1) - bufferOffset);
-
 
     local storeItem = self:Ensure(args.buf);
     storeItem.length = bufferLength;
