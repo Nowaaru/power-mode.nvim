@@ -27,4 +27,19 @@ function Utility:NamespaceExists(ns_id_or_name)
     return not not self:GetNamespaceById(ns_id_or_name --[[ @as string ]]);
 end
 
+function Utility:GetVisibleLines(winid)
+    local visible_lines;
+    vim.api.nvim_win_call(winid or 0, function()
+        visible_lines = { min = vim.fn.line('w0'), max = vim.fn.line('w$') }
+        visible_lines[1], visible_lines[2] = visible_lines.min, visible_lines.max;
+    end)
+
+    return visible_lines;
+end
+
+function Utility:GetEditorGridPositionFromLine(winid, line, col)
+    local visible_lines = self:GetVisibleLines(winid or 0);
+    return { (visible_lines.max - visible_lines.min) - line, col }
+end
+
 return Utility;
