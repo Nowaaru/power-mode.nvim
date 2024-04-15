@@ -164,9 +164,9 @@ function PowerWindow.new(name)
         end
     end
 
-    local function updLines(self)
-        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(self.Height, self.Width));
+    local function updLines(self, size)
         PowerWindow.__prototype.RenderWindow(self);
+        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(size.Height, size.Width));
     end
 
     function obj:__WidthChanged(old, new)
@@ -175,7 +175,7 @@ function PowerWindow.new(name)
             vim.api.nvim_win_set_width(self.__win, new or self.Width);
         end
 
-        updLines(self)
+        updLines(self, {Height = self.Height, Width = new})
     end
 
     function obj:__HeightChanged(old, new)
@@ -184,7 +184,7 @@ function PowerWindow.new(name)
             vim.api.nvim_win_set_height(self.__win, new or self.Height);
         end
 
-        updLines(self)
+        updLines(self, {Height = new, Width = self.Width})
     end
 
     -- function obj:__XChanged(old, new)
@@ -200,9 +200,10 @@ function PowerWindow.new(name)
         Height = PowerWindow.__prototype.Height,
         __buf = obj.__buf
     }
+
     obj.name = name or ("PowerWindow (%s)"):format(tostring(obj):sub(8));
-    obj.__WidthChanged(args);
-    obj.__HeightChanged(args);
+    obj.__WidthChanged(args, nil, args.Width);
+    obj.__HeightChanged(args, nil, args.Height);
 
 
     ---@class PowerWindow : PowerWindowPrototype, Proxy
