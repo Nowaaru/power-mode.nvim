@@ -1,3 +1,4 @@
+local util = require "power-mode.util"
 --TODO: make special animation_state key in layer
 --to keep track of fade animations and tweens
 
@@ -82,6 +83,31 @@ function PowerLayer.__prototype:Background(color)
             end_row = self.__win.Height,
             hl_eol = true,
             hl_group = id,
+            priority = order,
+        })
+    end, SpecialInstruction.BACKGROUND));
+end
+
+---@param x integer The X position of the text.
+---@param y integer The Y position of the text.
+---@param foreground? string The color of the text.
+---@param text string | string[] The text to write.
+function PowerLayer.__prototype:Text(x, y, background, foreground, text)
+    assert(self.__win, "layer must be bound to a window for this command to work.");
+    self:SetSpecialInstruction(SpecialInstruction.BACKGROUND, PowerInstruction.new(function(instructionId, order)
+        local id = self:MakeLayerId(instructionId, foreground);
+        vim.api.nvim_set_hl(self.__ns, id, { bg = background, fg = foreground });
+        local t = util:Split(text, "\n")
+        for i, v in pairs(t) do
+            t[i] = {v, id};
+        end
+
+        self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, x, y, {
+            end_col = self.__win.Width,
+            hl_eol = true,
+            hl_group = id,
+            virt_text = type(text) == "table" and text or t,
+            virt_text_pos = "overlay";
             priority = order,
         })
     end, SpecialInstruction.BACKGROUND));

@@ -42,4 +42,16 @@ function Utility:GetEditorGridPositionFromLine(winid, line, col)
     return { (visible_lines.max - visible_lines.min) - line, col }
 end
 
+-- https://stackoverflow.com/questions/1426954/split-string-in-lua#comment73602874_7615129
+function Utility:Split(inputstr, sep)
+    sep = sep or '%s'
+    local t = {}
+    for field, s in string.gmatch(inputstr, "([^" .. sep .. "]*)(" .. sep .. "?)") do
+        table.insert(t, field)
+        if s == "" then return t end
+    end
+
+    return t;
+end
+
 return Utility;
