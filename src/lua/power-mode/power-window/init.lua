@@ -43,6 +43,7 @@ function PowerWindow.__prototype:AddLayer(...)
             end
         end
         table.insert(self.__layers, v);
+        v:BindWindow(self --[[ @as PowerWindow ]])
         ::continue::
     end
 end
@@ -129,6 +130,10 @@ function PowerWindow.__prototype:RenderWindow()
             vim.api.nvim_win_hide(self.__win)
         end
     end
+
+    if (self.__win) then
+        vim.api.nvim_win_set_cursor(self.__win, {1,0})
+    end
 end
 
 ---Update the buffer with the provided lines.
@@ -159,46 +164,45 @@ function PowerWindow.new(name)
         end
     end
 
+    local function updLines(self)
+        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(self.Height, self.Width));
+        PowerWindow.__prototype.RenderWindow(self);
+    end
+
     function obj:__WidthChanged(old, new)
         print(("width changed yeye (%s -> %s)"):format(old, new));
-        -- PowerWindow.__prototype.Hide(obj);
         if (self.__win) then
-            vim.api.nvim_win_set_width(self.__win, new);
+            vim.api.nvim_win_set_width(self.__win, new or self.Width);
         end
 
-        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(self.Height, self.Width));
-        print("pre:", vim.inspect(self))
-        PowerWindow.__prototype.RenderWindow(self);
-        -- print("new:", vim.inspect(obj));
-        print("huffma:", self.Width, obj.Width)
+        updLines(self)
     end
 
     function obj:__HeightChanged(old, new)
         print(("height changed yeye (%s -> %s)"):format(old, new));
         if (self.__win) then
-            vim.api.nvim_win_set_height(self.__win, new);
+            vim.api.nvim_win_set_height(self.__win, new or self.Height);
         end
 
-        PowerWindow.__prototype.RenderWindow(self);
+        updLines(self)
     end
 
-    function obj:__XChanged(old, new)
-        print(("x changed yeye (%s -> %s)"):format(old, new));
-    end
+    -- function obj:__XChanged(old, new)
+    --     -- print(("x changed yeye (%s -> %s)"):format(old, new));
+    -- end
+    --
+    -- function obj:__YChanged(old, new)
+    --     -- print(("y changed yeye (%s -> %s)"):format(old, new));
+    -- end
 
-    function obj:__YChanged(old, new)
-        print(("y changed yeye (%s -> %s)"):format(old, new));
-    end
-
+    local args = {
+        Width = PowerWindow.__prototype.Width,
+        Height = PowerWindow.__prototype.Height,
+        __buf = obj.__buf
+    }
     obj.name = name or ("PowerWindow (%s)"):format(tostring(obj):sub(8));
-    -- obj.__WidthChanged({
-    --     Width = PowerWindow.__prototype.Width,
-    --     __buf = obj.__buf
-    -- }); --
-    -- obj.__HeightChanged({
-    --     Height = PowerWindow.__prototype.Height,
-    --     __buf = obj.__buf
-    -- }); --
+    obj.__WidthChanged(args);
+    obj.__HeightChanged(args);
 
 
     ---@class PowerWindow : PowerWindowPrototype, Proxy
