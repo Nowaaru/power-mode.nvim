@@ -71,9 +71,11 @@ function module:setup()
 
     local ns_id = vim.api.nvim_create_namespace('power-mode');
     local win = PowerWindow.new();
-    win.RenderOptions.relative = AnchorType.CURSOR
+    win.RenderOptions.relative = AnchorType.ABSOLUTE;
     win:BindToNamespace(ns_id);
     win.Width = 32
+    win.X = 12;
+    win.Y = 8;
 
     local background = PowerLayer.new("Background", ns_id, win.__buf);
     background:BindWindow(win);
