@@ -164,7 +164,11 @@ function Scorekeep.__prototype:on_buffer_text_changed(args)
     storeItem.length = bufferLength;
 
     if (storeItem.length_prev ~= -1) then
-        storeItem.combo = math.max(0, storeItem.combo + (storeItem.length - storeItem.length_prev));
+        local diff = storeItem.length - storeItem.length_prev
+        if (diff < 0 and diff < -5) then
+            diff = math.ceil(math.log(math.abs(diff), 16));
+        end
+        storeItem.combo = math.max(0, storeItem.combo + math.abs(diff));
     end
 
     storeItem.time = 0;           -- time should reset
