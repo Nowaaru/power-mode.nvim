@@ -54,4 +54,22 @@ function Utility:Split(inputstr, sep)
     return t;
 end
 
+---Converts a potential percentage string to a number.
+---Implicitly converts strings to numbers.
+---@param sizelike string | number
+function Utility:ParseSizeLike(sizelike, per)
+    local t = type(sizelike)
+    assert(t == "number" or t == "string", "parameter 'sizelike' must be of type 'string' or 'number'");
+    if (t == "number") then return sizelike end;
+    local y = tonumber(sizelike)
+    if (y) then return y end;
+
+    local percentage = sizelike:match("(%d+)%%");
+    if (percentage) then
+        return math.min(math.floor((percentage / 100) * (per or 1) + 0.5), per or math.huge)
+    end
+
+    error("could not convert to percentage");
+end
+
 return Utility;

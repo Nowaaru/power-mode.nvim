@@ -61,10 +61,6 @@ function PowerWindow.__prototype:BindToNamespace(namespace_id)
 end
 --
 function PowerWindow.__prototype:GenerateRenderOptions(overrides)
-    if (self.Width == PowerWindow.__prototype.Width) then
-        print("width:", self.Width);
-        -- print("self:", vim.inspect(self))
-    end
     local out = {
         focusable = false,
         col = self.X,
@@ -192,34 +188,43 @@ function PowerWindow.new(name)
 
     local function updLines(self, size)
         PowerWindow.__prototype.RenderWindow(self);
-        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(size.Height, size.Width));
+        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(size.Height or self.Height, size.Width or self.Width));
     end
 
     function obj:__WidthChanged(old, new)
+        new = Util:ParseSizeLike(new, vim.fn.winwidth(0));
+        rawset(obj, "Width", new);
         print(("width changed yeye (%s -> %s)"):format(old, new));
+
         if (self.__win) then
             vim.api.nvim_win_set_width(self.__win, new or self.Width);
         end
 
-        updLines(self, {Height = self.Height, Width = new})
+        updLines(self, { Width = new })
     end
 
     function obj:__HeightChanged(old, new)
+        new = Util:ParseSizeLike(new, vim.fn.winheight(0));
+        rawset(obj, "Height", new);
+
         print(("height changed yeye (%s -> %s)"):format(old, new));
         if (self.__win) then
             vim.api.nvim_win_set_height(self.__win, new or self.Height);
         end
 
-        updLines(self, {Height = new, Width = self.Width})
+        updLines(self, { Height = new })
     end
 
-    -- function obj:__XChanged(old, new)
-    --     -- print(("x changed yeye (%s -> %s)"):format(old, new));
-    -- end
-    --
-    -- function obj:__YChanged(old, new)
-    --     -- print(("y changed yeye (%s -> %s)"):format(old, new));
-    -- end
+    function obj:__XChanged(_, new)
+        new = Util:ParseSizeLike(new, vim.fn.winwidth(0));
+        rawset(obj, "X", new);
+        -- print(("x changed yeye (%s -> %s)"):format(_, new));
+    end
+
+    function obj:__YChanged(_, new)
+        new = Util:ParseSizeLike(new, vim.fn.winheight(0));
+        rawset(obj, "Y", new);
+    end
 
     local args = {
         Width = PowerWindow.__prototype.Width,
@@ -233,6 +238,10 @@ function PowerWindow.new(name)
 
 
     ---@class PowerWindow : PowerWindowPrototype, Proxy
+    ---@field X integer | string The X position of the window. Percentage values are implicitly converted to numeric values.
+    ---@field Y integer | string The Y position of the window. Percentage values are implicitly converted to numeric values.
+    ---@field Width integer | string The width of the window. Percentage values are implicitly converted to numeric values.
+    ---@field Height integer | string The height of the window. Percentage values are implicitly converted to numeric values.
     return Proxy(setmetatable(obj, PowerWindow.__prototype));
 end
 
