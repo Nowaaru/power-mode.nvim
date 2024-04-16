@@ -161,6 +161,7 @@ function Scorekeep.__prototype:on_buffer_text_changed(args)
 
     local storeItem = self:Ensure(args.buf);
     storeItem.length = bufferLength;
+    storeItem.combo = storeItem.combo + (storeItem.length - storeItem.length_prev);
     storeItem.time = 0;           -- time should reset
     storeItem.state_decrease = 0; -- since they typed, resume combo
 end
