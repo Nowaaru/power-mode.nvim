@@ -163,6 +163,9 @@ function Scorekeep.__prototype:on_buffer_text_changed(args)
     local storeItem = self:Ensure(args.buf);
     storeItem.length = bufferLength;
 
+    -- TODO: if the diff is < 5, then check how many lines
+    -- were deleted instead and use that for the combo while
+    -- capping out each line at, like, 16% of the longest line
     if (storeItem.length_prev ~= -1) then
         local diff = storeItem.length - storeItem.length_prev
         if (diff < 0 and diff < -5) then
