@@ -93,7 +93,7 @@ local ProxyConstructor = setmetatable({
                     if (type(maybe_func) == "function") then
                         -- print("has! returning...");
                         return function(...)
-                            local args = {...};
+                            local args = { ... };
                             table.remove(args, 1)
                             maybe_func(obj, ...);
                         end
@@ -111,10 +111,11 @@ local ProxyConstructor = setmetatable({
                     -- utilize a `self` that points to a potential
                     -- metatable instead of just `obj`
                     --
-                    -- WARNING: this makes it impossible to makes
+                    -- WARNING: this makes it impossible to make
                     -- functions; every function has to be provided
                     -- through a metatable (but why give an object)
-                    -- a function instead of a static class? :/
+                    -- a function instead of making it a static 
+                    -- member? :/
                     local maybe_func_self_mapped_to_obj = {};
                     for i, v in pairs(type(pfhResult[1]) == "table" and pfhResult[1] or {}) do
                         if (type(v) == "function") then
@@ -133,6 +134,19 @@ local ProxyConstructor = setmetatable({
                     return maybe_func_self_mapped_to_obj[k];
                 end,
                 __newindex = function(this, k, v)
+                    -- rawset returns the first parameters
+                    -- so if someone does return self it likely
+                    -- means they set something, no need for
+                    -- us to do it
+                    local pfhResult = proxyFunctionHandler("__newindex", obj, k, v);
+                    local old_value = rawget(obj, k)
+                    if (pfhResult == obj) then
+                        -- print("obj pfhresult")
+                        return;
+                    else
+                        rawset(obj, k, v)
+                    end
+
                     local onPropertyChangedListener = rawget(obj, "__" .. k .. "Changed");
                     local typeofListener = type(onPropertyChangedListener);
                     local proxyId = proxyName or ("<anonymous:" .. tostring(this):gsub("table:", "") .. ">");
@@ -150,26 +164,13 @@ local ProxyConstructor = setmetatable({
                                     "%s on proxy %s was changed. (%s -> %s)",
                                     k,
                                     proxyId,
-                                    rawget(obj, k) or "<undefined>",
+                                    old_value or "<undefined>",
                                     type(v) ~= "nil" and v or "<undefined>"
                                 ));
                         end
 
-                        onPropertyChangedListener(this, rawget(obj, k), v);
+                        onPropertyChangedListener(this, old_value, v);
                     end
-
-
-                    -- rawset returns the first parameters
-                    -- so if someone does return self it likely
-                    -- means they set something, no need for
-                    -- us to do it
-                    local pfhResult = proxyFunctionHandler("__newindex", obj, k, v);
-                    if (pfhResult == obj) then
-                        -- print("obj pfhresult")
-                        return;
-                    end
-
-                    rawset(obj, k, v)
                 end
             }, ofMt))
     end
