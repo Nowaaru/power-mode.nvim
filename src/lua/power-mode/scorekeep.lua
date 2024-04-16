@@ -86,14 +86,8 @@ end
 Scorekeep.__prototype                         = {
     --- WARNING: Modes not specified in this
     --- table will **not** be whitelisted.
-    _modalMultipliers        = {
-        v = 2.5,
-        n = 2,
-        i = 1
-    },
-
-    scoreIncreaseTimer       = nil,
     ScoreUpdated             = nil,
+    scoreIncreaseTimer       = nil,
 
     timerIntervalMs          = (1 / 60) * 1000,
     timeBeforeComboRemovalMs = 15 * 1000, -- 15 seconds (testing, maybe permanent as a default?)
@@ -101,12 +95,19 @@ Scorekeep.__prototype                         = {
     flowMaxMultiplier        = 2.87,
     consistencyDecreaseRate  = nil,
 
+    forceScoreCap            = false,
     scoreDecreaseCount       = 3,
     scoreIncrease            = 3,
-    scoreCap                 = 10,
-    ScoreHandler             = MakeDefaultScoreHandler,
+    scoreCap                 = 120,
 
+    ScoreHandler             = MakeDefaultScoreHandler,
     _buffers                 = {},
+    _modalMultipliers        = {
+        v = 2.5,
+        n = 2,
+        i = 1
+    },
+
 };
 
 Scorekeep.__prototype.consistencyDecreaseRate = 1 / (math.pow(Scorekeep.__prototype.flowMaxMultiplier, 1.3)); -- @ 2.87 ~ 8% loss per tick;
@@ -122,7 +123,7 @@ function Scorekeep:MakeDefault()
     ---@field state_decrease integer How many passes have occured without a notable change.
     return {
         length_prev = -1,
-        length = 0,
+        length = -1,
 
         score = 0,
         time = 0,
@@ -161,7 +162,11 @@ function Scorekeep.__prototype:on_buffer_text_changed(args)
 
     local storeItem = self:Ensure(args.buf);
     storeItem.length = bufferLength;
-    storeItem.combo = storeItem.combo + (storeItem.length - storeItem.length_prev);
+
+    if (storeItem.length_prev ~= -1) then
+        storeItem.combo = math.max(0, storeItem.combo + (storeItem.length - storeItem.length_prev));
+    end
+
     storeItem.time = 0;           -- time should reset
     storeItem.state_decrease = 0; -- since they typed, resume combo
 end
