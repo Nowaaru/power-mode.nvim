@@ -3,6 +3,7 @@ local AnchorType = require("power-mode.power-window.anchortype");
 local AnchorPosition = require("power-mode.power-window.anchorposition")
 local Proxy = require("power-mode.proxy");
 local Util = require("power-mode.util");
+local BorderType = require("power-mode.power-window.bordertype")
 ---@class PowerWindowPrototype
 ---@field __layers PowerLayer[] All layers to be written to this PowerWindow.
 ---@field __win integer The ID of the PowerWindow.
@@ -58,7 +59,6 @@ function PowerWindow.__prototype:BindToNamespace(namespace_id)
     assert(Util:NamespaceExists(namespace_id), ("Namespace %s does not exist."):format(namespace_id))
     self.__ns = namespace_id;
 end
-
 --
 function PowerWindow.__prototype:GenerateRenderOptions(overrides)
     if (self.Width == PowerWindow.__prototype.Width) then
@@ -74,6 +74,7 @@ function PowerWindow.__prototype:GenerateRenderOptions(overrides)
         style = "minimal",
         relative = AnchorType.ABSOLUTE,
         anchor = AnchorPosition.SOUTHWEST,
+        border = BorderType.ROUNDED,
         zindex = 25,
     }
 
@@ -82,6 +83,31 @@ function PowerWindow.__prototype:GenerateRenderOptions(overrides)
     end
 
     return out;
+end
+
+function PowerWindow.__prototype:SetRenderOptions(overrides)
+    self.RenderOptions = overrides;
+end
+
+function PowerWindow.__prototype:SetRenderOption(option, value)
+    self.RenderOptions[option] = value;
+end
+
+
+---@param borderType BorderType The type of border the window will have.
+function PowerWindow.__prototype:ChangeBorder(borderType)
+    self.RenderOptions.border = borderType;
+end
+
+
+---@param anchorPoint AnchorPosition The corner that will be used to position the window.
+function PowerWindow.__prototype:SetAnchorPoint(anchorPoint)
+    self.RenderOptions.anchor = anchorPoint;
+end
+--
+---@param anchorType AnchorType The corner that will be used to position the window.
+function PowerWindow.__prototype:SetAnchorType(anchorType)
+    self.RenderOptions.relative = anchorType;
 end
 
 function PowerWindow.__prototype:RenderComponents()
