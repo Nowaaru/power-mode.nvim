@@ -62,20 +62,25 @@ function module:setup()
     ---@param layers PowerLayer[]
     local function updateWindow(win, layers, args)
         local Y, X = unpack(vim.api.nvim_win_get_cursor(0));
-        win.Y, win.X = -1, 0;
+        -- win.Y, win.X = -1, 0;
 
         win:AddLayer((unpack or table.unpack)(layers));
         win:RenderWindow();
         win:RenderComponents();
     end
 
+    local screenpos = vim.fn.win_screenpos(0);
+    local winwidth = vim.fn.winwidth(0);
+
     local ns_id = vim.api.nvim_create_namespace('power-mode');
     local win = PowerWindow.new();
-    win.RenderOptions.relative = AnchorType.ABSOLUTE;
+    local x = winwidth - win.Width; -- there is no center anchor point, so no /2
+    win:SetAnchorType(AnchorType.ABSOLUTE);
     win:BindToNamespace(ns_id);
-    win.Width = 32
-    win.X = 12;
-    win.Y = 8;
+    win.Width = "50%";
+    win.X = (winwidth / 2) - (win.Width / 2)
+    win.Y = "100%"
+    print("rhs:", x + win.Width, "/", winwidth)
 
     local background = PowerLayer.new("Background", ns_id, win.__buf);
     background:BindWindow(win);
@@ -113,7 +118,7 @@ function module:setup()
         group = powerModeGroup,
         callback = function(args)
             scorekeep:Ensure(args.buf);
-            updateWindow(win, {background, bar}, args)
+            updateWindow(win, { background, bar }, args)
         end
     });
 
@@ -122,14 +127,15 @@ function module:setup()
         on_start = function(args)
             local scoreItem = scorekeep:Get()
             if (scoreItem) then
+                local score = scoreItem.score / scorekeep.scoreCap
                 local fy = tostring(scoreItem.combo) .. "x";
                 text:Clear();
                 bar:Clear();
-                bar:Bar(0, 2, scoreItem.score / scorekeep.scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
-                text:Text(0,1, nil, "#DF2935", fy)
+                bar:Bar(0, 2, score, "#FFFFFF" --[[  "#CF3369" ]]);
+                text:Text(0, 1, nil, "#DF2935", fy)
+                win:SetTitle(( "Tim Pope, the Vimdicator (%s%%)" ):format(math.floor(score * 100 + 0.25)));
                 win:RenderComponents();
-                updateWindow(win, {background, bar, text}, args)
-
+                updateWindow(win, { background, bar, text }, args)
             end
         end,
 
