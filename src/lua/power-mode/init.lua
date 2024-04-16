@@ -82,6 +82,9 @@ function module:setup()
     local bar = PowerLayer.new("Bar", ns_id, win.__buf);
     bar:BindWindow(win);
 
+    local text = PowerLayer.new("Text", ns_id, win.__buf);
+    text:BindWindow(win);
+
 
     win:AddLayer(background);
     print("showing window");
@@ -117,10 +120,14 @@ function module:setup()
         on_start = function(args)
             local scoreItem = scorekeep:Get()
             if (scoreItem) then
+                local fy = tostring(scoreItem.combo) .. "x";
+                text:Clear();
                 bar:Clear();
-                bar:Bar(0, 1, scoreItem.score / scorekeep.scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
+                bar:Bar(0, 2, scoreItem.score / scorekeep.scoreCap, "#FFFFFF" --[[  "#CF3369" ]]);
+                text:Text(0,1, nil, "#DF2935", fy)
                 win:RenderComponents();
-                updateWindow(win, {background, bar}, args)
+                updateWindow(win, {background, bar, text}, args)
+
             end
         end,
 

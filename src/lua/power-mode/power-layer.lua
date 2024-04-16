@@ -1,4 +1,4 @@
-local util = require "power-mode.util"
+local util               = require "power-mode.util"
 --TODO: make special animation_state key in layer
 --to keep track of fade animations and tweens
 
@@ -17,14 +17,14 @@ local PowerLayer         = {};
 ---@field name string The name of the layer.
 ---@field __ns number The namespace the layer belongs to.
 ---@field __win PowerWindow The window the layer belongs to.
----@field __ext number The number of the mark the layer possesses.
+---@field __exts number[] The mark numbers the layer possesses.
 ---@field __instructions { [integer]: PowerInstruction, __special: ({id: string, instruction: PowerInstruction?})[] } The instructions the layer possesses.
 PowerLayer.__prototype   = {
     name = "Prototype",
     __buf = nil,
     __win = nil,
     __ns = nil,
-    __ext = nil,
+    __exts = nil,
     __instructions = {
         -- array of [instructionId, instruction]
         __special = {},
@@ -59,12 +59,12 @@ function PowerLayer.__prototype:Fill(color)
     self:AddInstruction(PowerInstruction.new(function(instructionId, order)
         local id = self:MakeLayerId(instructionId, color);
         vim.api.nvim_set_hl(self.__ns, id, { fg = color });
-        self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, 0, 0, {
+        table.insert(self.__exts, vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, 0, 0, {
             end_row = self.__win.Height,
             hl_eol = true,
             hl_group = id,
             priority = order,
-        })
+        }))
     end, "Fill"));
 end
 
@@ -79,12 +79,12 @@ function PowerLayer.__prototype:Background(color)
     self:SetSpecialInstruction(SpecialInstruction.BACKGROUND, PowerInstruction.new(function(instructionId, order)
         local id = self:MakeLayerId(instructionId, color);
         vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
-        self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, 0, 0, {
+        table.insert(self.__exts,  vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, 0, 0, {
             end_row = self.__win.Height,
             hl_eol = true,
             hl_group = id,
             priority = order,
-        })
+        }))
     end, SpecialInstruction.BACKGROUND));
 end
 
@@ -94,32 +94,32 @@ end
 ---@param text string | string[] The text to write.
 function PowerLayer.__prototype:Text(x, y, background, foreground, text)
     assert(self.__win, "layer must be bound to a window for this command to work.");
-    self:SetSpecialInstruction(SpecialInstruction.BACKGROUND, PowerInstruction.new(function(instructionId, order)
+    self:AddInstruction(PowerInstruction.new(function(instructionId, order)
         local id = self:MakeLayerId(instructionId, foreground);
         vim.api.nvim_set_hl(self.__ns, id, { bg = background, fg = foreground });
         local t = util:Split(text, "\n")
         for i, v in pairs(t) do
-            t[i] = {v, id};
+            t[i] = { v, id };
         end
 
-        self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, x, y, {
+        table.insert(self.__exts, vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, y, x, {
             end_col = self.__win.Width,
             hl_eol = true,
             hl_group = id,
             virt_text = type(text) == "table" and text or t,
-            virt_text_pos = "overlay";
+            virt_text_pos = "overlay",
             priority = order,
-        })
-    end, SpecialInstruction.BACKGROUND));
+        }))
+    end, "Text"));
 end
 
 ---Fill a bar with a color.
 ---Uses the background highlight.
 ---@param color? string The color of the bar.
-function PowerLayer.__prototype:Bar(line, height, percentage, color)
-    line = math.floor(line + 0.5) or 0
+function PowerLayer.__prototype:Bar(start_line, height, percentage, color)
+    start_line = math.floor(start_line + 0.5)
+    height = math.floor((height or 1) + 0.5)
     color = color or "#000000";
-    height = height or 1
     percentage = tonumber(percentage) or 1;
     percentage = math.max(0, math.min(percentage, 1));
     assert(self.__win, "layer must be bound to a window for this command to work.");
@@ -127,15 +127,17 @@ function PowerLayer.__prototype:Bar(line, height, percentage, color)
     table.insert(self.__instructions, PowerInstruction.new(
         function(instructionId, order)
             local id = self:MakeLayerId(instructionId, color);
-            local end_row = math.min(math.floor(line + (height - 1)), self.__win.Height);
+            -- local end_row = math.min(math.floor(line), self.__win.Height);
             local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width) + 0.5);
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
-            self.__ext = vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
-                end_row = end_row,
-                end_col = end_col,
-                hl_group = id,
-                priority = order,
-            })
+            for line = start_line, math.min(height or 1, self.__win.Height) do
+                table.insert(self.__exts, vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
+                    -- end_row = line,
+                    end_col = end_col,
+                    hl_group = id,
+                    priority = order,
+                }))
+            end
         end, "Bar"))
 end
 
@@ -150,10 +152,10 @@ function PowerLayer.__prototype:Clear()
     self:Reset();
     self:SetSpecialInstruction(SpecialInstruction.BACKGROUND,
         PowerInstruction.new(function()
-            if (self.__ext) then
-                vim.api.nvim_buf_del_extmark(self.__buf, self.__ns, self.__ext);
+            for _, v in pairs(self.__exts) do
+                vim.api.nvim_buf_del_extmark(self.__buf, self.__ns, v);
             end
-            self.__ext = nil;
+            self.__exts = {};
         end, "Clear"));
 end
 
@@ -213,7 +215,7 @@ function PowerLayer.new(name, namespace, buffer)
         __ns = namespace,
         __win = nil,
         __buf = buffer,
-        __ext = nil,
+        __exts = {},
         __instructions = { __special = {} },
     }, PowerLayer.__prototype);
 end
