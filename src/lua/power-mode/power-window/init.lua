@@ -14,6 +14,7 @@ local BorderType = require("power-mode.power-window.bordertype")
 ---@field Y integer The Y position of the window.
 ---@field Width integer The width of the window.
 ---@field Height integer The height of the window.
+---@field protected RenderOptions table<string, unknown> The Window's render options.
 PowerWindow.__prototype = {
     X = 0,
     Y = 0,
@@ -25,7 +26,7 @@ PowerWindow.__prototype = {
     __ns = nil,
     __showing = false,
     __layers = {},
-    RenderOptions = {};
+    RenderOptions = {},
 };
 
 function PowerWindow.__prototype:Show()
@@ -59,6 +60,7 @@ function PowerWindow.__prototype:BindToNamespace(namespace_id)
     assert(Util:NamespaceExists(namespace_id), ("Namespace %s does not exist."):format(namespace_id))
     self.__ns = namespace_id;
 end
+
 --
 function PowerWindow.__prototype:GenerateRenderOptions(overrides)
     local out = {
@@ -89,19 +91,18 @@ function PowerWindow.__prototype:SetRenderOption(option, value)
     self.RenderOptions[option] = value;
 end
 
-
----@param borderType BorderType The type of border the window will have.
+---@param borderType string The type of border the window will have.
 function PowerWindow.__prototype:ChangeBorder(borderType)
     self.RenderOptions.border = borderType;
 end
 
-
----@param anchorPoint AnchorPosition The corner that will be used to position the window.
+---@param anchorPoint string The corner that will be used to position the window.
 function PowerWindow.__prototype:SetAnchorPoint(anchorPoint)
     self.RenderOptions.anchor = anchorPoint;
 end
+
 --
----@param anchorType AnchorType The corner that will be used to position the window.
+---@param anchorType string The corner that will be used to position the window.
 function PowerWindow.__prototype:SetAnchorType(anchorType)
     self.RenderOptions.relative = anchorType;
 end
@@ -154,8 +155,22 @@ function PowerWindow.__prototype:RenderWindow()
     end
 
     if (self.__win) then
-        vim.api.nvim_win_set_cursor(self.__win, {1,0})
+        vim.api.nvim_win_set_cursor(self.__win, { 1, 0 })
     end
+end
+
+---@param title string | string[][] The title.
+---@param pos string? The position of the title.
+function PowerWindow.__prototype:SetTitle(title, pos)
+    self.RenderOptions.title = type(title) == "table" and title or {{title, "CursorLine"}};
+    self.RenderOptions.title_pos = pos;
+end
+--
+---@param footer string | string[][] The footer.
+---@param pos string? The position of the footer.
+function PowerWindow.__prototype:SetFooter(footer, pos)
+    self.RenderOptions.footer = type(footer) == "table" and footer or {{footer, "CursorLine"}};
+    self.RenderOptions.footer_pos = pos;
 end
 
 ---Update the buffer with the provided lines.
