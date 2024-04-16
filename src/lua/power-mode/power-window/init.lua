@@ -140,6 +140,7 @@ end
 
 function PowerWindow.__prototype:RenderWindow()
     if (self.__win) then
+        --print(vim.inspect(self.RenderOptions))
         vim.api.nvim_win_set_config(self.__win, PowerWindow.__prototype.GenerateRenderOptions(self));
     end
 
@@ -162,14 +163,26 @@ end
 ---@param title string | string[][] The title.
 ---@param pos string? The position of the title.
 function PowerWindow.__prototype:SetTitle(title, pos)
-    self.RenderOptions.title = type(title) == "table" and title or {{title, "CursorLine"}};
+    self.RenderOptions.title = type(title) == "table" and title or { { title, "CursorLine" } };
     self.RenderOptions.title_pos = pos;
 end
+
 --
 ---@param footer string | string[][] The footer.
 ---@param pos string? The position of the footer.
+--- Doesn't work despite the NeoVim api explicitly
+--- describing the footer:
+--[[
+---
+--  title: Title (optional) in window border, string or list. List should consist of [text, highlight] tuples. If string, the default highlight group is FloatTitle.
+--  title_pos: Title position. Must be set with title option. Value can be one of "left", "center", or "right". Default is "left".
+--  footer: Footer (optional) in window border, string or list. List should consist of [text, highlight] tuples. If string, the default highlight group is FloatFooter.
+--  footer_pos: Footer position. Must be set with footer option. Value can be one of "left", "center", or "right". Default is "left".
+--
+--]]
+---@deprecated
 function PowerWindow.__prototype:SetFooter(footer, pos)
-    self.RenderOptions.footer = type(footer) == "table" and footer or {{footer, "CursorLine"}};
+    self.RenderOptions.footer = type(footer) == "table" and footer or { { footer, "CursorLine" } };
     self.RenderOptions.footer_pos = pos;
 end
 
@@ -203,7 +216,8 @@ function PowerWindow.new(name)
 
     local function updLines(self, size)
         PowerWindow.__prototype.RenderWindow(self);
-        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false, ConvertLinesToHashes(size.Height or self.Height, size.Width or self.Width));
+        vim.api.nvim_buf_set_lines(self.__buf, 0, 0, false,
+            ConvertLinesToHashes(size.Height or self.Height, size.Width or self.Width));
     end
 
     function obj:__WidthChanged(old, new)
