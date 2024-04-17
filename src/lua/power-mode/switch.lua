@@ -72,7 +72,6 @@ local makeCaseHandler = function(qualifier)
                         "a 'default' function was already defined on line " .. (default_line or "<unknown>"))
                 end
 
-                print("the calling environment:", vim.inspect(callingEnvironment));
                 assert(callingEnvironment.__SWITCH ~= nil,
                     "function 'default' can only be called inside of a 'switch' statement");
 
