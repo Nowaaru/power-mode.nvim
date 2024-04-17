@@ -1,6 +1,6 @@
 -- @name switch.lua
 -- @by Nowaaru
--- @rev 2024/03/26
+-- @rev 2024/04/17
 -- @license gpl3.0
 --
 -- @desc The worst, stupidest, dumbest little thing ever that
