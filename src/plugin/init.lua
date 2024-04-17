@@ -1,1 +1,1 @@
-require('power-mode'):setup();
+-- require('power-mode'):setup();
