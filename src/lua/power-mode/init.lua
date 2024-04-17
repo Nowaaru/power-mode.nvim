@@ -11,8 +11,8 @@
 ---@class PowerMode The Power Mode class.
 ---@field protected __namespace integer The default namespace for this instance.
 local module      = {
-    __namespace = vim.api.nvim_create_namespace('power-mode');
-    __group_name = "power-mode.nvim/handler";
+    __namespace = vim.api.nvim_create_namespace('power-mode'),
+    __group_name = "power-mode.nvim/handler",
 };
 
 local unpack      = table.unpack or unpack;
@@ -52,30 +52,40 @@ function module:setup()
     self:assert(supportsImages, "unable to locate plugin '3rd/image.nvim.'");
     print("3rd/image.nvim successfully found.");
 
-    local a = vim.fn.getcwd() .. "/" .. vim.api.nvim_buf_get_name(0);
-    print("ayy: ", a);
-    if not a:match("test") then
-        return print("ok")
-    end
-
     -- TODO: Implement score decay type option
     -- (stamina, rapid-decay, no-decay)
 
     -- TODO: Add some kind of consistency indicator bar
     -- self.scoreIncreaseTimer = vim.loop.new_timer();
 
-
     return Scorekeep;
 end
 
 function module:__test_preset()
+    local a = vim.fn.getcwd() .. "/" .. vim.api.nvim_buf_get_name(0);
+    if not a:match("test") then
+        return print("ok")
+    end
+
     local Preset = require("power-mode.presets.boss");
     local Boss = Preset.new(module.__group_name);
+
+
+    vim.api.nvim_create_autocmd("VimResized", {
+        callback = function(buf)
+            if (buf ~= vim.api.nvim_get_current_buf()) then
+                return;
+            end
+
+            Boss:UpdateWindow();
+        end
+
+    });
 
     Boss:on_init(self.__namespace);
     self.decorationProvider = vim.api.nvim_set_decoration_provider(module.__namespace, {
         on_start = function(_, tick)
-            return Boss:on_start(module.__namespace, tick)
+            return Boss:on_start()
         end
     })
 end
