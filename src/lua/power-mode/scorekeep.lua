@@ -38,12 +38,12 @@ local DefaultScoreHandler                     = function(self, scoreItem)
 
 
         scoreItem.time = scoreItem.time + self.timerIntervalMs;
-        scoreItem.score = math.min(self.scoreCap, scoreItem.score + (baseAddedScore));
+        scoreItem.score = math.min(self.forceScoreCap and self.scoreCap or math.huge, scoreItem.score + (baseAddedScore));
 
         if (scoreItem.state_decrease >= self.scoreDecreaseCount) then
             -- if (scoreItem.state_decrease % scoreDecreaseCount == 0) then
             scoreItem.score = math.max(
-                scoreItem.score - math.abs((0.5 * self.scoreIncrease) / self.timerIntervalMs),
+                scoreItem.score - math.abs((3.125 * self.scoreIncrease) / self.timerIntervalMs),
                 0)
             -- end
         end
@@ -71,10 +71,17 @@ local DefaultScoreHandler                     = function(self, scoreItem)
         end)
     end
 end
-local MakeDefaultScoreHandler                 = function(...)
+
+---Make a pretty-print-compatible score handler
+---facade;.
+
+---@param self table<unknown, unknown>
+---@param ... unknown
+---@return table
+local MakeDefaultScoreHandler                 = function(self, ...)
     return setmetatable({}, {
         __tostring = "Default Score Handler",
-        __call = DefaultScoreHandler(...)
+        __call = DefaultScoreHandler(self, ...)
     })
 end
 
@@ -95,7 +102,7 @@ Scorekeep.__prototype                         = {
     flowMaxMultiplier        = 2.87,
     consistencyDecreaseRate  = nil,
 
-    forceScoreCap            = false,
+    forceScoreCap            = true,
     scoreDecreaseCount       = 3,
     scoreIncrease            = 3,
     scoreCap                 = 120,
@@ -134,12 +141,13 @@ function Scorekeep:MakeDefault()
 end
 
 function Scorekeep.__prototype:Ensure(bufferId)
-    bufferId = tostring(bufferId);
+    bufferId = tostring(bufferId or vim.api.nvim_get_current_buf());
     local storeItem = self._buffers[bufferId];
-    if (not storeItem) then
-        storeItem = Scorekeep:MakeDefault();
-        self._buffers[bufferId] = storeItem;
+    if (storeItem) then
+        return storeItem;
     end
+    storeItem = Scorekeep:MakeDefault();
+    self._buffers[bufferId] = storeItem;
 
     return storeItem;
 end
@@ -163,19 +171,23 @@ function Scorekeep.__prototype:on_buffer_text_changed(args)
     local storeItem = self:Ensure(args.buf);
     storeItem.length = bufferLength;
 
-    -- TODO: if the diff is < 5, then check how many lines
-    -- were deleted instead and use that for the combo while
-    -- capping out each line at, like, 16% of the longest line
+    -- TODO: if the diff is > the current line amount, then
+    -- check how many lines were deleted instead and use that
+    -- for the combo while having the column value cap out for
+    -- each line at, like, 16% of the longest line
     if (storeItem.length_prev ~= -1) then
         local diff = storeItem.length - storeItem.length_prev
         if (diff < 0 and diff < -5) then
             diff = math.ceil(math.log(math.abs(diff), 16));
         end
+
+        -- print("ight dawg its not -1 no more");
         storeItem.combo = math.max(0, storeItem.combo + math.abs(diff));
     end
 
     storeItem.time = 0;           -- time should reset
     storeItem.state_decrease = 0; -- since they typed, resume combo
+    -- print(("%s: %s (%sx)"):format(args.buf, storeItem.score, storeItem.combo));
 end
 
 function Scorekeep.__prototype:Start()
