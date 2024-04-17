@@ -305,7 +305,7 @@ function Preset.new(namespace)
     self.window:AddLayer(background, bar);
     self.window:Show();
 
-    timer:start(0, 100, function()
+    timer:start(0, 100, function() -- 🌟
       vim.schedule(function()
         self.window:AddLayer(background, bar);
         self.window:RenderWindow();
@@ -367,7 +367,7 @@ function Preset.new(namespace)
 
     timer:start(0, 100, function()
       vim.schedule(function()
-        background:Clear();
+        background:Clear();-- 🌟
         bar:Clear();
 
         background:Background("#DF2935");
