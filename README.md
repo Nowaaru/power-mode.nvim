@@ -21,7 +21,7 @@
 
   At least, that's how I remembered it.
   
-  Once I swapped to Visual Studio Code, I craved that satisfaction the more I burnt out. WakaTime could only do so
+  Once I swapped from Visual Studio Code, I craved that satisfaction the more I burnt out. WakaTime could only do so
   much, and I have even less in cash to give them, so I had to use my secret weapon: <b>Attention Deficit Hyperactivity Disorder</b>.
   <h6>Description</h6>
   Activate 2 of these effects. <b>Must</b> be done at the same time.
