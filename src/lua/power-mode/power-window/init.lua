@@ -37,6 +37,10 @@ function PowerWindow.__prototype:Hide()
     self.__showing = false;
 end
 
+-- TODO: implement some kind of shake function that
+-- offsets the position of the window by some static
+-- value
+
 function PowerWindow.__prototype:AddLayer(...)
     for _, v in pairs({ ... }) do
         for _, w in pairs(self.__layers) do
