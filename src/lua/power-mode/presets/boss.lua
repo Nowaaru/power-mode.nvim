@@ -90,13 +90,15 @@ function BossPreset.__prototype:RegenerateBossName()
     return self.bossName;
 end
 
----@param layers PowerLayer[] The layers to update.
+---@param layers? PowerLayer[] The layers to update.
 ---@param args table<unknown, unknown>[]? Extra parameters, typically passed in theough
 ---nvim_set_decoration_provider.
 ---@diagnostic disable-next-line: unused-local
 function BossPreset.__prototype:UpdateWindow(layers, args)
     vim.schedule(function()
-        self.win:AddLayer((unpack or table.unpack)(layers));
+        if (layers) then
+            self.win:AddLayer((unpack or table.unpack)(layers));
+        end
         self.win:RenderWindow();
         self.win:RenderComponents();
     end)
