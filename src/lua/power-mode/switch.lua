@@ -60,7 +60,7 @@ local makeCaseHandler = function(qualifier)
         local self = { qualifier };
         self[2] =
             function(default_line)
-                local mutableCallingEnvironment = getLocals(1);
+                local mutableCallingEnvironment = getLocals(0);
                 local callingEnvironment = {};
                 for i, v in pairs(mutableCallingEnvironment) do
                     callingEnvironment[i] = v;
@@ -72,6 +72,7 @@ local makeCaseHandler = function(qualifier)
                         "a 'default' function was already defined on line " .. (default_line or "<unknown>"))
                 end
 
+                print("the calling environment:", vim.inspect(callingEnvironment));
                 assert(callingEnvironment.__SWITCH ~= nil,
                     "function 'default' can only be called inside of a 'switch' statement");
 
@@ -95,7 +96,7 @@ local function default(arg)
 end
 
 local function switch(qualifier)
-    return function(cases)
+    local casesFunc = function(cases)
         local defaultCase;
         local alreadyDefaultCase;
         local fallThrough;
@@ -115,6 +116,7 @@ local function switch(qualifier)
             elseif (v.__default) then
                 local f = v[2](alreadyDefaultCase);
                 local funcInfo = debug.getinfo(f, "S");
+
                 if (not defaultCase) then
                     defaultCase = f;
                     alreadyDefaultCase = funcInfo.linedefined .. "-" .. funcInfo.lastlinedefined;
@@ -126,6 +128,8 @@ local function switch(qualifier)
         local res = { defaultCase() };
         return (unpack or table.unpack)(res);
     end
+
+    return casesFunc
 end
 
 return setmetatable(
