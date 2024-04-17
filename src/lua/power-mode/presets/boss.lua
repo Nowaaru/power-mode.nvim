@@ -1,29 +1,46 @@
 math.randomseed(os.time() + os.clock());
 
-local BossPreset                        = {};
-local Scorekeep                         = require("power-mode.scorekeep")
-local PowerWindow                       = require("power-mode.power-window")
-local PowerLayer                        = require("power-mode.power-layer")
-local AnchorType                        = require("power-mode.power-window.anchortype")
-local unpack                            = unpack or table.unpack
+local BossPreset                         = {};
+local switch, case, default, fallthrough = unpack(require("power-mode.switch"));
+local Scorekeep                          = require("power-mode.scorekeep")
+local PowerWindow                        = require("power-mode.power-window")
+local PowerLayer                         = require("power-mode.power-layer")
+local AnchorType                         = require("power-mode.power-window.anchortype")
+local unpack                             = unpack or table.unpack
 
 ---@class BossPrototype
 ---@field bossNames string[]
 ---@field specialBossNames table<string, string[]>
 ---@field win PowerWindow The window behind this Preset instance.
-BossPreset.__prototype                  = {};
-BossPreset.__prototype.bossNames        = {
+BossPreset.__prototype                   = {};
+BossPreset.__prototype.bossNames         = {
     "Tim Pope",
     "Nowaaru",
     "Noire",
 };
 
-BossPreset.__prototype.colours          = {
+BossPreset.__prototype.rawBossNames      = {};
+BossPreset.__prototype.colours           = {
     background = "#DF2935",
     [0] = "#FFFFFF",
-}
+};
 
-BossPreset.__prototype.specialBossNames = {
+BossPreset.__prototype.genericBossNames  = {
+    "Binger of Hars",
+    "The King",
+    "The Forsaken",
+    "The Exile",
+    "Abjudicator of Evil",
+    "The Tarnished",
+    "Bearer of the Smellden Ring",
+    "The Officeworker",
+    "The Layman",
+    "The Fool",
+    "The Tyrant",
+    "A Memory of the Past",
+};
+
+BossPreset.__prototype.specialBossNames  = {
     Nowaaru = {
         "The Creator",
         "The Arbiter",
@@ -42,6 +59,36 @@ BossPreset.__prototype.specialBossNames = {
     },
 };
 
+
+function BossPreset.__prototype:RegenerateBossName()
+    local randomName = self.bossNames[math.random(1, #self.bossNames)];
+    local bossTitleList = self.specialBossNames[randomName];
+    local chosenListQueue;
+
+    -- i can't believe i actually found a
+    -- use case for this LOL
+    switch(math.random(0, 1)) {
+        case(0) {
+            function()
+                if (bossTitleList) then
+                    chosenListQueue = math.random(0, 1) == 0 and bossTitleList or self.genericBossNames;
+                end
+
+                local specialTitle = chosenListQueue[math.random(1, #chosenListQueue)];
+                self.bossName = randomName .. (specialTitle and (", " .. specialTitle) or "")
+            end,
+        },
+
+        default {
+            function()
+                chosenListQueue = self.rawBossNames;
+                self.bossName = chosenListQueue[math.random(1, #chosenListQueue)];
+            end
+        },
+
+    }
+    return self.bossName;
+end
 
 ---@param layers PowerLayer[] The layers to update.
 ---@param args table<unknown, unknown>[]? Extra parameters, typically passed in theough
@@ -82,6 +129,7 @@ function BossPreset.new(group)
     local Boss = setmetatable({}, { __index = BossPreset.__prototype });
     local scorekeep = Scorekeep.new(group);
     local time_to_tick = 100;
+
     local timer = vim.loop.new_timer();
     timer:start(0, time_to_tick, function()
         vim.schedule(function()
@@ -90,6 +138,15 @@ function BossPreset.new(group)
             Boss:UpdateWindow({ Boss.bar, Boss.bar2 })
         end)
     end)
+
+    ---comment
+    ---@param scoreItem ScoreEntry
+    scorekeep.ScoreUpdated = function(scoreItem)
+        if (scoreItem.score >= scorekeep.scoreCap) then
+            scoreItem.score = 0;
+            Boss.bossName = nil;
+        end
+    end
 
     ---@param namespace integer
     function Boss:on_init(namespace)
@@ -122,7 +179,7 @@ function BossPreset.new(group)
         local score_inverse = 1 - score;
         local health_score = scoreItem.score / healthCap;
 
-        for i = 0, healthBars + 2 do
+        for i = 1, healthBars - 1 do
             ---@type PowerLayer
             if (not self.colours[i]) then
                 self.colours[i] = ("#%0.6X"):format(math.random(0xFFFFFF)):upper();
@@ -134,8 +191,8 @@ function BossPreset.new(group)
 
         local text_col;
         local lolok = 1 - ((healthBars - 1) / healthBars);
+        local floored_score = math.floor(health_score);
         if (score_inverse >= lolok) then
-            local floored_score = math.floor(health_score);
             text_col = self.colours[math.max(#self.colours - (floored_score), 0)]
             self.bar:Bar(0, 2, 1, self.colours[#self.colours - (floored_score + 1)]);
         else
@@ -144,7 +201,8 @@ function BossPreset.new(group)
 
         local normalized = 1 - (health_score % 1);
         self.bar2:Bar(0, 2, score == 1 and 0 or normalized, text_col);
-        self.win:SetTitle(("Tim Pope, the Vimdicator (%s%%)"):format(math.floor(score_inverse * 100 + 0.25)));
+        self.win:SetTitle(("%s (%s%%)"):format(Boss.bossName or self:RegenerateBossName(),
+            math.floor(score_inverse * 100 + 0.25)));
         return true;
     end
 
