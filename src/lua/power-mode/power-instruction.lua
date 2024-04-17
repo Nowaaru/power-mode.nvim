@@ -11,7 +11,6 @@ PowerInstruction.__prototype = {
         error("This table is locked.")
     end,
     __tostring = function(self)
-
         return ("PowerInstruction%s"):format(tostring(self._func):sub(10));
     end,
     _VERBOSE = false
