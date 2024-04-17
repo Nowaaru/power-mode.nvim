@@ -3,7 +3,18 @@
 -- so i don't explode my computer by accident
 --]]
 
-local module      = {};
+-- TODO:
+-- give the module a 'preset' field
+-- that automatically runs and processes
+-- preset instances
+
+---@class PowerMode The Power Mode class.
+---@field protected __namespace integer The default namespace for this instance.
+local module      = {
+    __namespace = vim.api.nvim_create_namespace('power-mode');
+    __group_name = "power-mode.nvim/handler";
+};
+
 local unpack      = table.unpack or unpack;
 local PowerWindow = require("power-mode.power-window")
 local PowerLayer  = require("power-mode.power-layer")
@@ -47,101 +58,26 @@ function module:setup()
         return print("ok")
     end
 
-
-    local powerModeGroup =
-        vim.api.nvim_create_augroup("power-mode.nvim/handler", {
-            clear = true,
-        });
-
-    --[[
-    --TODO: make proper scoring system
-    --zzz :snore:
-    --]]
-
-    ---@param win PowerWindow
-    ---@param layers PowerLayer[]
-    local function updateWindow(win, layers, args)
-        local Y, X = unpack(vim.api.nvim_win_get_cursor(0));
-        -- win.Y, win.X = -1, 0;
-
-        win:AddLayer((unpack or table.unpack)(layers));
-        win:RenderWindow();
-        win:RenderComponents();
-    end
-
-    local screenpos = vim.fn.win_screenpos(0);
-    local winwidth = vim.fn.winwidth(0);
-
-    local ns_id = vim.api.nvim_create_namespace('power-mode');
-    local win = PowerWindow.new();
-    local x = winwidth - win.Width; -- there is no center anchor point, so no /2
-    win:SetAnchorType(AnchorType.ABSOLUTE);
-    win:BindToNamespace(ns_id);
-    win.Width = "50%";
-    win.X = (winwidth / 2) - (win.Width / 2)
-    win.Y = "100%"
-    print("rhs:", x + win.Width, "/", winwidth)
-
-    local background = PowerLayer.new("Background", ns_id, win.__buf);
-    background:BindWindow(win);
-    background:Background("#DF2935");
-
-    local bar = PowerLayer.new("Bar", ns_id, win.__buf);
-    bar:BindWindow(win);
-
-    local text = PowerLayer.new("Text", ns_id, win.__buf);
-    text:BindWindow(win);
-
-
-    win:AddLayer(background);
-    print("showing window");
-    win:Show();
-
     -- TODO: Implement score decay type option
     -- (stamina, rapid-decay, no-decay)
 
     -- TODO: Add some kind of consistency indicator bar
-    self.scoreIncreaseTimer = vim.loop.new_timer();
+    -- self.scoreIncreaseTimer = vim.loop.new_timer();
 
-    -- window moving and working the renderer
-
-
-    local scorekeep = Scorekeep.new(powerModeGroup);
-    scorekeep:Start();
-    ---@param scoreItem ScoreEntry
-    scorekeep.ScoreUpdated = function(scoreItem)
-        -- win:RenderComponents()
-        -- print(("GRRRR: %s"):format(scoreItem.score))
-    end
-
-    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-        group = powerModeGroup,
-        callback = function(args)
-            scorekeep:Ensure(args.buf);
-            updateWindow(win, { background, bar }, args)
-        end
-    });
-
-    self.decorationProvider = vim.api.nvim_set_decoration_provider(ns_id, {
-
-        on_start = function(args)
-            local scoreItem = scorekeep:Get()
-            if (scoreItem) then
-                local score = scoreItem.score / scorekeep.scoreCap
-                local fy = tostring(scoreItem.combo) .. "x";
-                text:Clear();
-                bar:Clear();
-                bar:Bar(0, 2, score, "#FFFFFF" --[[  "#CF3369" ]]);
-                text:Text(0, 1, nil, "#DF2935", fy)
-                win:SetTitle(( "Tim Pope, the Vimdicator (%s%%)" ):format(math.floor(score * 100 + 0.25)));
-                win:RenderComponents();
-                updateWindow(win, { background, bar, text }, args)
-            end
-        end,
-
-    });
 
     return Scorekeep;
+end
+
+function module:__test_preset()
+    local Preset = require("power-mode.presets.boss");
+    local Boss = Preset.new(module.__group_name);
+
+    Boss:on_init(self.__namespace);
+    self.decorationProvider = vim.api.nvim_set_decoration_provider(module.__namespace, {
+        on_start = function(_, tick)
+            return Boss:on_start(module.__namespace, tick)
+        end
+    })
 end
 
 function module:__test(imageNvim)
