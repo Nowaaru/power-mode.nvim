@@ -9,7 +9,6 @@
 -- careful consideration.
 
 local unpack = unpack or table.unpack;
-local switch, case, default, fallthrough = unpack(require("power-mode.proxy.switch"));
 
 ---@class ProxyConstructor
 ---@field __VERBOSE boolean Whether the constructor should automatically log changes.
