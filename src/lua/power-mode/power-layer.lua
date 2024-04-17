@@ -58,7 +58,7 @@ function PowerLayer.__prototype:Fill(color)
     assert(self.__win, "layer must be bound to a window for this command to work.");
     self:AddInstruction(PowerInstruction.new(function(instructionId, order)
         local id = self:MakeLayerId(instructionId, color);
-        vim.api.nvim_set_hl(self.__ns, id, { fg = color });
+        vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color });
         table.insert(self.__exts, vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, 0, 0, {
             end_row = self.__win.Height,
             hl_eol = true,
@@ -75,10 +75,12 @@ end
 ---Fill the window with a color.
 ---@param color? string The color of the fill.
 function PowerLayer.__prototype:Background(color)
+    -- TODO: look into using links to cut down on the sheer amount of highlights being made
     assert(self.__win, "layer must be bound to a window for this command to work.");
     self:SetSpecialInstruction(SpecialInstruction.BACKGROUND, PowerInstruction.new(function(instructionId, order)
         local id = self:MakeLayerId(instructionId, color);
         vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
+
         table.insert(self.__exts,  vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, 0, 0, {
             end_row = self.__win.Height,
             hl_eol = true,
@@ -128,9 +130,9 @@ function PowerLayer.__prototype:Bar(start_line, height, percentage, color)
         function(instructionId, order)
             local id = self:MakeLayerId(instructionId, color);
             -- local end_row = math.min(math.floor(line), self.__win.Height);
-            local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width) + 0.5);
+            local end_col = math.floor(math.min(self.__win.Width * percentage, self.__win.Width --[[ @as integer ]]) + 0.5);
             vim.api.nvim_set_hl(self.__ns, id, { bg = color, fg = color })
-            for line = start_line, math.min(height or 1, self.__win.Height) do
+            for line = start_line, math.min(height or 1, self.__win.Height --[[ @as integer ]]) do
                 table.insert(self.__exts, vim.api.nvim_buf_set_extmark(self.__buf, self.__ns, line, 0, {
                     -- end_row = line,
                     end_col = end_col,
